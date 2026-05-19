@@ -1,0 +1,9 @@
+.env
+storage/logs/
+storage/cache/
+storage/tmp/
+storage/exports/
+storage/uploads/
+vendor/
+.DS_Store
+*.log
