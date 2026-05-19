@@ -493,11 +493,7 @@
       </div>
     <?php endif; ?>
 
-    <?= $con    <?php
-    ob_start();
-    // ... your page-specific code ...
-    $content = ob_get_clean();
-    include 'base.php';tent ?>
+    <?= $content ?>
   </div>
 </main>
 
