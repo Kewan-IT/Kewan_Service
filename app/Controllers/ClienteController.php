@@ -132,21 +132,56 @@ class ClienteController
 
 
 
-    public function pesquisarAjax(): void
+   public function pesquisarAjax(): void
 {
     AuthMiddleware::check();
-    $q = trim($_GET['q'] ?? '');
-    if (strlen($q) < 2) { View::json([]); return; }
 
-    $stmt = (new \Core\Database)->getInstance()->prepare("
-        SELECT id, nome, telefone, nuit
-        FROM clientes
-        WHERE ativo = 1
-          AND (nome LIKE :q OR telefone LIKE :q OR nuit LIKE :q)
-        ORDER BY nome LIMIT 10
-    ");
-    $stmt->execute(['q' => "%$q%"]);
-    View::json($stmt->fetchAll());
+    header('Content-Type: application/json; charset=utf-8');
+
+    $q = trim($_GET['q'] ?? '');
+
+    if (strlen($q) < 1) {
+        echo json_encode([]);
+        exit;
+    }
+
+    try {
+
+        $db = (new \Core\Database)->getInstance();
+
+        $stmt = $db->prepare("
+            SELECT
+                id,
+                nome,
+                telefone,
+                nuit
+            FROM clientes
+            WHERE nome LIKE :q
+            ORDER BY nome ASC
+            LIMIT 20
+        ");
+
+        $stmt->execute([
+            ':q' => "%{$q}%"
+        ]);
+
+        echo json_encode(
+            $stmt->fetchAll(PDO::FETCH_ASSOC),
+            JSON_UNESCAPED_UNICODE
+        );
+
+        exit;
+
+    } catch (\Throwable $e) {
+
+        http_response_code(500);
+
+        echo json_encode([
+            'erro' => $e->getMessage()
+        ]);
+
+        exit;
+    }
 }
 
     // ================================================================
