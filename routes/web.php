@@ -28,6 +28,7 @@ $router->post('/produtos/novo',        ['ProdutoController', 'store']);
 $router->get('/produtos/{id}',         ['ProdutoController', 'show']);
 $router->get('/produtos/{id}/editar',  ['ProdutoController', 'edit']);
 $router->post('/produtos/{id}/editar', ['ProdutoController', 'update']);
+$router->post('/produtos/{id}/lote',   ['ProdutoController', 'adicionarLote']);
 
 // Clientes
 $router->get('/clientes',              ['ClienteController', 'index']);
