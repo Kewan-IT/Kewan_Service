@@ -404,6 +404,9 @@
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/compras" class="nav-item <?= ($activePage ?? '') === 'compras' ? 'active' : '' ?>">
       <i class="bi bi-truck"></i> Compras
     </a>
+    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/fornecedores" class="nav-item <?= ($activePage ?? '') === 'fornecedores' ? 'active' : '' ?>">
+      <i class="bi bi-building"></i> Fornecedores
+    </a>
 
     <?php if (in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico'])): ?>
     <div class="nav-section-label">Gestão</div>

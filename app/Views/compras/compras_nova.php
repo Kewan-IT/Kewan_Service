@@ -1,11 +1,11 @@
 <?php $appUrl = $_ENV['APP_URL'] ?? ''; ?>
- 
+
 <style>
 .produto-resultado { cursor:pointer; padding:10px 14px; border-bottom:1px solid #f0f0f0; transition:background .1s; }
 .produto-resultado:hover { background:#f0f9f4; }
 .produto-resultado:last-child { border-bottom:none; }
 </style>
- 
+
 <div class="d-flex align-items-center justify-content-between mb-3">
   <div>
     <h1 class="page-title">Nova Compra</h1>
@@ -15,16 +15,16 @@
     <i class="bi bi-arrow-left me-1"></i>Voltar
   </a>
 </div>
- 
+
 <form id="form-compra" action="<?= $appUrl ?>/compras/nova" method="POST">
   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
   <input type="hidden" name="itens_json" id="itens_json" value="[]">
- 
+
 <div class="row g-4">
- 
+
   <!-- Coluna esquerda: produtos -->
   <div class="col-12 col-lg-8">
- 
+
     <!-- Pesquisa de produto -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body py-3">
@@ -40,7 +40,7 @@
              style="max-height:260px;overflow-y:auto;position:relative;z-index:100"></div>
       </div>
     </div>
- 
+
     <!-- Tabela de itens -->
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
@@ -73,12 +73,12 @@
         </div>
       </div>
     </div>
- 
+
   </div>
- 
+
   <!-- Coluna direita: fornecedor + totais -->
   <div class="col-12 col-lg-4">
- 
+
     <!-- Fornecedor -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-white py-3">
@@ -94,12 +94,15 @@
         <?php if (empty($fornecedores)): ?>
         <div class="alert alert-warning py-2 mt-2 mb-0" style="font-size:12px">
           <i class="bi bi-exclamation-triangle me-1"></i>
-          Nenhum fornecedor activo. Adicione um nas Configurações.
+          Nenhum fornecedor activo.
+          <a href="<?= $appUrl ?>/fornecedores/novo" target="_blank" class="alert-link">
+            Registar fornecedor →
+          </a>
         </div>
         <?php endif; ?>
       </div>
     </div>
- 
+
     <!-- Detalhes da encomenda -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-white py-3">
@@ -134,7 +137,7 @@
         </div>
       </div>
     </div>
- 
+
     <!-- Totais -->
     <div class="card border-0 shadow-sm">
       <div class="card-body py-3">
@@ -153,24 +156,24 @@
           <span>TOTAL</span>
           <span class="text-success" id="display-total">0,00 MZN</span>
         </div>
- 
+
         <button type="button" id="btn-guardar" class="btn btn-success w-100 py-2 mt-3 fw-bold"
                 onclick="guardarCompra()" disabled>
           <i class="bi bi-check-circle me-2"></i>Guardar Compra
         </button>
       </div>
     </div>
- 
+
   </div>
 </div>
 </form>
- 
+
 <script>
 const APP_URL = '<?= $appUrl ?>';
 let itens = [];
 let _produtosCache = {};
 let _ignorarInput = false;
- 
+
 // ── Pesquisa de produto ──
 let timer;
 document.getElementById('pesquisa-produto').addEventListener('input', function () {
@@ -180,28 +183,28 @@ document.getElementById('pesquisa-produto').addEventListener('input', function (
   if (q.length < 2) { fecharResultados(); return; }
   timer = setTimeout(() => pesquisarProduto(q), 300);
 });
- 
+
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#pesquisa-produto') && !e.target.closest('#resultados-produtos')) {
     fecharResultados();
   }
 });
- 
+
 async function pesquisarProduto(q) {
   try {
     const res  = await fetch(`${APP_URL}/api/produtos/pesquisar?q=${encodeURIComponent(q)}`);
     const json = await res.json();
     const data = Array.isArray(json) ? json : (json.produtos || []);
     const div  = document.getElementById('resultados-produtos');
- 
+
     if (!data.length) {
       div.innerHTML = '<div class="p-3 text-muted text-center" style="font-size:13px">Nenhum produto encontrado.</div>';
       div.classList.remove('d-none');
       return;
     }
- 
+
     data.forEach(p => { _produtosCache[p.id] = p; });
- 
+
     div.innerHTML = data.map(p => `
       <div class="produto-resultado" data-produto-id="${p.id}">
         <div class="d-flex justify-content-between align-items-start">
@@ -215,24 +218,24 @@ async function pesquisarProduto(q) {
           </div>
         </div>
       </div>`).join('');
- 
+
     div.querySelectorAll('.produto-resultado').forEach(el => {
       el.addEventListener('click', function() {
         adicionarItem(_produtosCache[parseInt(this.dataset.produtoId)]);
       });
     });
- 
+
     div.classList.remove('d-none');
   } catch(e) { console.error(e); }
 }
- 
+
 function adicionarItem(produto) {
   fecharResultados();
   _ignorarInput = true;
   document.getElementById('pesquisa-produto').value = '';
   _ignorarInput = false;
   document.getElementById('pesquisa-produto').focus();
- 
+
   const idx = itens.findIndex(i => i.produto_id === produto.id);
   if (idx >= 0) {
     itens[idx].quantidade++;
@@ -251,17 +254,17 @@ function adicionarItem(produto) {
   }
   renderItens();
 }
- 
+
 function recalcularItem(idx) {
   itens[idx].subtotal = itens[idx].preco_unitario * itens[idx].quantidade;
 }
- 
+
 function renderItens() {
   const tbody  = document.getElementById('tbody-itens');
   const vazio  = document.getElementById('itens-vazio');
   const tabela = document.getElementById('itens-tabela');
   const badge  = document.getElementById('badge-itens');
- 
+
   if (!itens.length) {
     vazio.classList.remove('d-none');
     tabela.classList.add('d-none');
@@ -270,11 +273,11 @@ function renderItens() {
     recalcularTotal();
     return;
   }
- 
+
   vazio.classList.add('d-none');
   tabela.classList.remove('d-none');
   badge.textContent = itens.length + (itens.length === 1 ? ' item' : ' itens');
- 
+
   tbody.innerHTML = itens.map((item, idx) => `
     <tr>
       <td class="ps-3">
@@ -309,31 +312,31 @@ function renderItens() {
         </button>
       </td>
     </tr>`).join('');
- 
+
   document.getElementById('btn-guardar').disabled = false;
   recalcularTotal();
 }
- 
+
 function setQty(idx, val) {
   itens[idx].quantidade = Math.max(1, parseInt(val) || 1);
   recalcularItem(idx);
   renderItens();
 }
- 
+
 function setPreco(idx, val) {
   itens[idx].preco_unitario = Math.max(0, parseFloat(val) || 0);
   recalcularItem(idx);
   renderItens();
 }
- 
+
 function setLote(idx, val)    { itens[idx].numero_lote   = val; sincronizarJson(); }
 function setValidade(idx, val){ itens[idx].validade_lote = val; sincronizarJson(); }
- 
+
 function removerItem(idx) {
   itens.splice(idx, 1);
   renderItens();
 }
- 
+
 function recalcularTotal() {
   const subtotal = itens.reduce((s, i) => s + i.subtotal, 0);
   const desconto = parseFloat(document.getElementById('desconto-input').value) || 0;
@@ -342,7 +345,7 @@ function recalcularTotal() {
   document.getElementById('display-total').textContent    = formatMZN(total);
   sincronizarJson();
 }
- 
+
 function sincronizarJson() {
   document.getElementById('itens_json').value = JSON.stringify(
     itens.map(i => ({
@@ -355,7 +358,7 @@ function sincronizarJson() {
     }))
   );
 }
- 
+
 function guardarCompra() {
   if (!itens.length) { alert('Adicione pelo menos um produto.'); return; }
   if (!document.getElementById('fornecedor_id').value) {
@@ -369,19 +372,18 @@ function guardarCompra() {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>A guardar...';
   document.getElementById('form-compra').submit();
 }
- 
+
 function fecharResultados() {
   document.getElementById('resultados-produtos').classList.add('d-none');
 }
- 
+
 function formatMZN(val) {
   return parseFloat(val).toLocaleString('pt-MZ', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' MZN';
 }
- 
+
 function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
- 
+
 document.getElementById('pesquisa-produto').focus();
 </script>
- 

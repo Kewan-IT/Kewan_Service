@@ -46,6 +46,10 @@ $podeCancelar = in_array($compra['status'], ['rascunho','enviada']);
       <i class="bi bi-x-circle me-1"></i>Cancelar Compra
     </button>
     <?php endif; ?>
+    <a href="<?= $appUrl ?>/compras/<?= $compra['id'] ?>/pdf"
+   target="_blank" class="btn btn-success btn-sm">
+  <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
+</a>
     <a href="<?= $appUrl ?>/compras" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-arrow-left me-1"></i>Voltar
     </a>

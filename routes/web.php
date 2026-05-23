@@ -129,3 +129,16 @@ $router->post('/vendas/{id}/cancelar', ['VendaController', 'cancelar']);
 
 // ── Configurações ────────────────────────────────────────────────
 // $router->get('/configuracoes', ['ConfiguracaoController', 'index']);
+
+
+
+$router->get('/compras/{id}/pdf', ['CompraController', 'pdf']);
+
+// Fornecedores
+$router->get('/fornecedores',              ['FornecedorController', 'index']);
+$router->get('/fornecedores/novo',         ['FornecedorController', 'create']);
+$router->post('/fornecedores/novo',        ['FornecedorController', 'store']);
+$router->get('/fornecedores/{id}',         ['FornecedorController', 'show']);
+$router->get('/fornecedores/{id}/editar',  ['FornecedorController', 'edit']);
+$router->post('/fornecedores/{id}/editar', ['FornecedorController', 'update']);
+$router->post('/fornecedores/{id}/toggle', ['FornecedorController', 'toggle']);

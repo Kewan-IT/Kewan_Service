@@ -200,6 +200,20 @@ class CompraController
         header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/compras/' . $id);
         exit;
     }
+
+    // ================================================================
+// GET /compras/{id}/pdf — Gerar PDF da encomenda
+// ================================================================
+public function pdf(string $id): void
+{
+    $compra = $this->model->findComItens((int)$id);
+    if (!$compra) { $this->notFound(); return; }
+
+    $appUrl = $_ENV['APP_URL'] ?? '';
+    extract(['compra' => $compra, 'appUrl' => $appUrl]);
+    require __DIR__ . '/../../app/Views/compras/compras_pdf.php';
+    exit;
+}
  
     // ----------------------------------------------------------------
     private function notFound(): void
