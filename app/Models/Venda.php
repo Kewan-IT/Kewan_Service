@@ -1,30 +1,25 @@
 <?php
-
 namespace App\Models;
 
 use Core\BaseModel;
-use PDO;
 
 class Venda extends BaseModel
 {
     protected string $table = 'vendas';
 
     // ----------------------------------------------------------------
-    // Gerar número sequencial VD-2025-00001
+    // Gerar número sequencial  ex: VD-2025-00001
     // ----------------------------------------------------------------
     public function gerarNumero(): string
     {
-        $ano    = date('Y');
+        $ano     = date('Y');
         $prefixo = $_ENV['PREFIXO_VENDA'] ?? 'VD';
-        $stmt   = $this->db->prepare("
-            SELECT numero_venda FROM vendas
-            WHERE numero_venda LIKE :p
-            ORDER BY id DESC LIMIT 1
+        $stmt    = $this->db->prepare("
+            SELECT COUNT(*) FROM vendas WHERE YEAR(criado_em) = :ano
         ");
-        $stmt->execute(['p' => "$prefixo-$ano-%"]);
-        $ultimo = $stmt->fetchColumn();
-        $seq    = $ultimo ? (int)substr($ultimo, -5) + 1 : 1;
-        return sprintf("%s-%s-%05d", $prefixo, $ano, $seq);
+        $stmt->execute(['ano' => $ano]);
+        $seq = (int) $stmt->fetchColumn() + 1;
+        return sprintf('%s-%s-%05d', $prefixo, $ano, $seq);
     }
 
     // ----------------------------------------------------------------
@@ -35,12 +30,11 @@ class Venda extends BaseModel
         $this->db->beginTransaction();
         try {
             $cabecalho['numero_venda'] = $this->gerarNumero();
-            $cabecalho['usuario_id']   = $cabecalho['usuario_id'] ?? 0;
 
             // Inserir cabeçalho
             $vendaId = $this->insert($cabecalho);
 
-            // Inserir itens
+            // Inserir itens e actualizar stock
             $stmtItem = $this->db->prepare("
                 INSERT INTO itens_venda
                     (venda_id, produto_id, lote_id, quantidade, preco_unitario, desconto_item, subtotal)
@@ -48,44 +42,51 @@ class Venda extends BaseModel
                     (:venda_id, :produto_id, :lote_id, :quantidade, :preco_unitario, :desconto_item, :subtotal)
             ");
 
+            $stmtStock = $this->db->prepare("
+                UPDATE produtos SET estoque_actual = estoque_actual - :qty
+                WHERE id = :id AND estoque_actual >= :qty2
+            ");
+
             foreach ($itens as $item) {
                 $stmtItem->execute([
-                    'venda_id'      => $vendaId,
-                    'produto_id'    => $item['produto_id'],
-                    'lote_id'       => $item['lote_id'] ?? null,
-                    'quantidade'    => $item['quantidade'],
-                    'preco_unitario'=> $item['preco_unitario'],
-                    'desconto_item' => $item['desconto_item'] ?? 0,
-                    'subtotal'      => $item['subtotal'],
+                    'venda_id'       => $vendaId,
+                    'produto_id'     => $item['produto_id'],
+                    'lote_id'        => $item['lote_id'] ?? null,
+                    'quantidade'     => $item['quantidade'],
+                    'preco_unitario' => $item['preco_unitario'],
+                    'desconto_item'  => $item['desconto_item'] ?? 0,
+                    'subtotal'       => $item['subtotal'],
+                ]);
+
+                // Baixar stock
+                $stmtStock->execute([
+                    'qty' => $item['quantidade'], 'qty2' => $item['quantidade'],
+                    'id'  => $item['produto_id'],
                 ]);
             }
 
             // Registar movimento de caixa se houver caixa aberto
-            $caixaAberto = $this->db->query("
+            $caixaId = $this->db->query("
                 SELECT id FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1
             ")->fetchColumn();
 
-            if ($caixaAberto) {
-                $stmt = $this->db->prepare("
+            if ($caixaId) {
+                $this->db->prepare("
                     INSERT INTO movimentos_caixa
                         (caixa_id, venda_id, tipo, valor, descricao, usuario_id)
                     VALUES
-                        (:caixa_id, :venda_id, 'venda', :valor, :descricao, :usuario_id)
-                ");
-                $stmt->execute([
-                    'caixa_id'   => $caixaAberto,
-                    'venda_id'   => $vendaId,
-                    'valor'      => $cabecalho['total'],
-                    'descricao'  => 'Venda ' . $cabecalho['numero_venda'],
-                    'usuario_id' => $cabecalho['usuario_id'],
+                        (:caixa_id, :venda_id, 'venda', :valor, :desc, :uid)
+                ")->execute([
+                    'caixa_id' => $caixaId,
+                    'venda_id' => $vendaId,
+                    'valor'    => $cabecalho['total'],
+                    'desc'     => 'Venda ' . $cabecalho['numero_venda'],
+                    'uid'      => $cabecalho['usuario_id'],
                 ]);
 
-                // Actualizar totais do caixa
                 $this->db->prepare("
-                    UPDATE caixa
-                    SET total_vendas = total_vendas + :total
-                    WHERE id = :id
-                ")->execute(['total' => $cabecalho['total'], 'id' => $caixaAberto]);
+                    UPDATE caixa SET total_vendas = total_vendas + :total WHERE id = :id
+                ")->execute(['total' => $cabecalho['total'], 'id' => $caixaId]);
             }
 
             $this->db->commit();
@@ -98,27 +99,25 @@ class Venda extends BaseModel
     }
 
     // ----------------------------------------------------------------
-    // Detalhe completo da venda com itens
+    // Detalhe completo com itens
     // ----------------------------------------------------------------
     public function findCompleto(int $id): ?array
     {
         $stmt = $this->db->prepare("
             SELECT v.*,
-                   c.nome   AS cliente_nome,
-                   c.nuit   AS cliente_nuit,
-                   c.telefone AS cliente_telefone,
-                   u.nome   AS usuario_nome
+                   c.nome      AS cliente_nome,
+                   c.nuit      AS cliente_nuit,
+                   c.telefone  AS cliente_telefone,
+                   u.nome      AS usuario_nome
             FROM vendas v
             LEFT JOIN clientes c ON c.id = v.cliente_id
-            JOIN usuarios u      ON u.id = v.usuario_id
-            WHERE v.id = :id
-            LIMIT 1
+            LEFT JOIN usuarios u ON u.id = v.usuario_id
+            WHERE v.id = :id LIMIT 1
         ");
         $stmt->execute(['id' => $id]);
         $venda = $stmt->fetch();
         if (!$venda) return null;
 
-        // Itens da venda
         $stmt = $this->db->prepare("
             SELECT iv.*,
                    p.nome           AS produto_nome,
@@ -126,8 +125,8 @@ class Venda extends BaseModel
                    p.codigo_barras,
                    l.numero_lote
             FROM itens_venda iv
-            JOIN produtos p         ON p.id  = iv.produto_id
-            LEFT JOIN lotes l       ON l.id  = iv.lote_id
+            JOIN produtos p       ON p.id = iv.produto_id
+            LEFT JOIN lotes l     ON l.id = iv.lote_id
             WHERE iv.venda_id = :id
         ");
         $stmt->execute(['id' => $id]);
@@ -141,44 +140,44 @@ class Venda extends BaseModel
     // ----------------------------------------------------------------
     public function listar(array $filtros = []): array
     {
-        $sql = "
+        $sql    = "
             SELECT v.*,
                    c.nome AS cliente_nome,
                    u.nome AS usuario_nome,
                    COUNT(iv.id) AS total_itens
             FROM vendas v
-            LEFT JOIN clientes c  ON c.id = v.cliente_id
-            JOIN usuarios u       ON u.id = v.usuario_id
+            LEFT JOIN clientes c     ON c.id = v.cliente_id
+            LEFT JOIN usuarios u     ON u.id = v.usuario_id
             LEFT JOIN itens_venda iv ON iv.venda_id = v.id
             WHERE 1=1
         ";
         $params = [];
 
         if (!empty($filtros['data_inicio'])) {
-            $sql .= " AND DATE(v.criado_em) >= :data_inicio";
+            $sql .= ' AND DATE(v.criado_em) >= :data_inicio';
             $params['data_inicio'] = $filtros['data_inicio'];
         }
         if (!empty($filtros['data_fim'])) {
-            $sql .= " AND DATE(v.criado_em) <= :data_fim";
+            $sql .= ' AND DATE(v.criado_em) <= :data_fim';
             $params['data_fim'] = $filtros['data_fim'];
         }
         if (!empty($filtros['status'])) {
-            $sql .= " AND v.status = :status";
+            $sql .= ' AND v.status = :status';
             $params['status'] = $filtros['status'];
         }
         if (!empty($filtros['forma_pagamento'])) {
-            $sql .= " AND v.forma_pagamento = :forma_pagamento";
+            $sql .= ' AND v.forma_pagamento = :forma_pagamento';
             $params['forma_pagamento'] = $filtros['forma_pagamento'];
         }
         if (!empty($filtros['busca'])) {
-            $sql .= " AND (v.numero_venda LIKE :busca OR c.nome LIKE :busca)";
+            $sql .= ' AND (v.numero_venda LIKE :busca OR c.nome LIKE :busca)';
             $params['busca'] = '%' . $filtros['busca'] . '%';
         }
 
-        $sql .= " GROUP BY v.id ORDER BY v.criado_em DESC";
+        $sql .= ' GROUP BY v.id ORDER BY v.criado_em DESC';
 
         if (!empty($filtros['limite'])) {
-            $sql .= " LIMIT " . (int)$filtros['limite'];
+            $sql .= ' LIMIT ' . (int)$filtros['limite'];
         }
 
         $stmt = $this->db->prepare($sql);
@@ -187,52 +186,53 @@ class Venda extends BaseModel
     }
 
     // ----------------------------------------------------------------
-    // Cancelar venda (trigger repõe o stock automaticamente)
+    // Cancelar venda
     // ----------------------------------------------------------------
     public function cancelar(int $id, string $motivo = ''): bool
     {
+        // Repor stock
+        $itens = $this->db->prepare("SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = :id");
+        $itens->execute(['id' => $id]);
+        foreach ($itens->fetchAll() as $item) {
+            $this->db->prepare("UPDATE produtos SET estoque_actual = estoque_actual + :qty WHERE id = :id")
+                     ->execute(['qty' => $item['quantidade'], 'qty2' => $item['quantidade'], 'id' => $item['produto_id']]);
+        }
+
         $stmt = $this->db->prepare("
-            UPDATE vendas
-            SET status = 'cancelada',
-                observacoes = CONCAT(COALESCE(observacoes,''), '\nCANCELADA: ', :motivo)
+            UPDATE vendas SET status = 'cancelada',
+                observacoes = CONCAT(COALESCE(observacoes,''), ' [CANCELADA: ', :motivo, ']')
             WHERE id = :id AND status = 'concluida'
         ");
         return $stmt->execute(['id' => $id, 'motivo' => $motivo]);
     }
 
     // ----------------------------------------------------------------
-    // Resumo do dia para o dashboard
+    // Resumo do dia
     // ----------------------------------------------------------------
     public function resumoDia(): array
     {
         $stmt = $this->db->query("
             SELECT
-                COUNT(*)              AS total_vendas,
-                COALESCE(SUM(total), 0) AS valor_total,
-                COALESCE(SUM(desconto), 0) AS descontos,
-                COALESCE(AVG(total), 0)  AS ticket_medio,
-                SUM(status = 'cancelada') AS canceladas
+                COUNT(*)                   AS total_vendas,
+                COALESCE(SUM(total),0)     AS valor_total,
+                COALESCE(SUM(desconto),0)  AS descontos,
+                COALESCE(AVG(total),0)     AS ticket_medio
             FROM vendas
-            WHERE DATE(criado_em) = CURDATE()
-              AND status != 'cancelada'
+            WHERE DATE(criado_em) = CURDATE() AND status = 'concluida'
         ");
         return $stmt->fetch();
     }
 
     // ----------------------------------------------------------------
-    // Resumo por forma de pagamento (hoje)
+    // Resumo por forma de pagamento hoje
     // ----------------------------------------------------------------
     public function resumoPagamentosDia(): array
     {
         $stmt = $this->db->query("
-            SELECT forma_pagamento,
-                   COUNT(*)       AS total_vendas,
-                   SUM(total)     AS valor_total
+            SELECT forma_pagamento, COUNT(*) AS total_vendas, SUM(total) AS valor_total
             FROM vendas
-            WHERE DATE(criado_em) = CURDATE()
-              AND status = 'concluida'
-            GROUP BY forma_pagamento
-            ORDER BY valor_total DESC
+            WHERE DATE(criado_em) = CURDATE() AND status = 'concluida'
+            GROUP BY forma_pagamento ORDER BY valor_total DESC
         ");
         return $stmt->fetchAll();
     }

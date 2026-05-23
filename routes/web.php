@@ -30,6 +30,8 @@ $router->get('/produtos/{id}/editar',  ['ProdutoController', 'edit']);
 $router->post('/produtos/{id}/editar', ['ProdutoController', 'update']);
 $router->post('/produtos/{id}/lote',   ['ProdutoController', 'adicionarLote']);
 
+// API AJAX
+
 // Clientes
 $router->get('/clientes',              ['ClienteController', 'index']);
 $router->get('/clientes/novo',         ['ClienteController', 'create']);
@@ -66,3 +68,64 @@ $router->get('/relatorios/lotes-a-vencer',  ['RelatorioController', 'lotesAVence
 // Configurações (só admin)
 $router->get('/configuracoes',        ['ConfiguracaoController', 'index']);
 $router->post('/configuracoes',       ['ConfiguracaoController', 'update']);
+
+// Vendas
+$router->get('/vendas',                ['VendaController', 'index']);
+$router->get('/vendas/nova',           ['VendaController', 'create']);
+$router->post('/vendas/nova',          ['VendaController', 'store']);
+$router->get('/vendas/{id}/detalhe',   ['VendaController', 'show']);
+$router->get('/vendas/{id}/talao',     ['VendaController', 'talao']);
+$router->post('/vendas/{id}/cancelar', ['VendaController', 'cancelar']);
+// ── Autenticação ─────────────────────────────────────────────────
+$router->get('/auth/login',          ['AuthController', 'showLogin']);
+$router->post('/auth/login',         ['AuthController', 'login']);
+$router->get('/auth/logout',         ['AuthController', 'logout']);
+$router->get('/auth/recuperar',      ['AuthController', 'showRecuperar']);
+$router->post('/auth/recuperar',     ['AuthController', 'recuperar']);
+
+// ── Dashboard ────────────────────────────────────────────────────
+$router->get('/',          ['DashboardController', 'index']);
+$router->get('/dashboard', ['DashboardController', 'index']);
+
+// ── Funcionários ─────────────────────────────────────────────────
+$router->get('/funcionarios',                  ['FuncionarioController', 'index']);
+$router->get('/funcionarios/novo',             ['FuncionarioController', 'create']);
+$router->post('/funcionarios/novo',            ['FuncionarioController', 'store']);
+$router->get('/funcionarios/{id}',             ['FuncionarioController', 'show']);
+$router->get('/funcionarios/{id}/editar',      ['FuncionarioController', 'edit']);
+$router->post('/funcionarios/{id}/editar',     ['FuncionarioController', 'update']);
+$router->post('/funcionarios/{id}/credenciais',['FuncionarioController', 'atribuirCredenciais']);
+
+// ── Produtos ─────────────────────────────────────────────────────
+$router->get('/produtos',              ['ProdutoController', 'index']);
+$router->get('/produtos/novo',         ['ProdutoController', 'create']);
+$router->post('/produtos/novo',        ['ProdutoController', 'store']);
+$router->get('/produtos/{id}',         ['ProdutoController', 'show']);
+$router->get('/produtos/{id}/editar',  ['ProdutoController', 'edit']);
+$router->post('/produtos/{id}/editar', ['ProdutoController', 'update']);
+$router->post('/produtos/{id}/lote',   ['ProdutoController', 'adicionarLote']);
+
+// ── Clientes ─────────────────────────────────────────────────────
+$router->get('/clientes',              ['ClienteController', 'index']);
+$router->get('/clientes/novo',         ['ClienteController', 'create']);
+$router->post('/clientes/novo',        ['ClienteController', 'store']);
+$router->get('/clientes/{id}',         ['ClienteController', 'show']);
+$router->get('/clientes/{id}/editar',  ['ClienteController', 'edit']);
+$router->post('/clientes/{id}/editar', ['ClienteController', 'update']);
+
+// ── Vendas ───────────────────────────────────────────────────────
+// IMPORTANTE: /vendas/nova/carrinho ANTES de /vendas/{id}/...
+// para o router não confundir "nova" com um {id}
+$router->post('/vendas/nova/carrinho', ['VendaController', 'salvarCarrinho']);
+$router->get('/vendas/nova',           ['VendaController', 'create']);
+$router->post('/vendas/nova',          ['VendaController', 'store']);
+$router->get('/vendas',                ['VendaController', 'index']);
+$router->get('/vendas/{id}/detalhe',   ['VendaController', 'show']);
+$router->get('/vendas/{id}/talao',     ['VendaController', 'talao']);
+$router->post('/vendas/{id}/cancelar', ['VendaController', 'cancelar']);
+
+// ── Relatórios ───────────────────────────────────────────────────
+// $router->get('/relatorios', ['RelatorioController', 'index']);
+
+// ── Configurações ────────────────────────────────────────────────
+// $router->get('/configuracoes', ['ConfiguracaoController', 'index']);

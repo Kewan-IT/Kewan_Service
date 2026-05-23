@@ -138,26 +138,40 @@ class Produto extends BaseModel
     // Pesquisa AJAX para o balcão de vendas
     // ----------------------------------------------------------------
     public function pesquisarParaVenda(string $q, int $limit = 10): array
-    {
-        $stmt = $this->db->prepare("
-            SELECT
-                p.id, p.nome, p.codigo_barras, p.principio_ativo,
-                p.preco_venda, p.estoque_actual, p.requer_receita,
-                p.controlado, p.unidade_medida, p.imagem_url,
-                c.nome AS categoria,
-                (SELECT MIN(l.validade) FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0) AS proxima_validade,
-                (SELECT l.id FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS lote_id
-            FROM produtos p
-            JOIN categorias c ON c.id = p.categoria_id
-            WHERE p.ativo = 1
-              AND p.estoque_actual > 0
-              AND (p.nome LIKE :q OR p.codigo_barras LIKE :q OR p.principio_ativo LIKE :q)
-            ORDER BY p.nome
-            LIMIT $limit
-        ");
-        $stmt->execute(['q' => '%' . $q . '%']);
-        return $stmt->fetchAll();
-    }
+{
+    $stmt = $this->db->prepare("
+        SELECT
+            p.id,
+            p.nome,
+            p.codigo_barras,
+            p.principio_ativo,
+            p.preco_venda,
+            p.estoque_actual,
+            p.requer_receita,
+            p.controlado,
+            p.unidade_medida,
+            p.imagem_url,
+            c.nome AS categoria,
+            (SELECT MIN(l.validade)
+             FROM lotes l
+             WHERE l.produto_id = p.id) AS proxima_validade
+        FROM produtos p
+        JOIN categorias c ON c.id = p.categoria_id
+        WHERE (
+            p.nome LIKE :q
+            OR p.codigo_barras LIKE :q
+            OR p.principio_ativo LIKE :q
+        )
+        ORDER BY p.nome
+        LIMIT $limit
+    ");
+
+    $stmt->execute([
+        'q' => '%' . $q . '%'
+    ]);
+
+    return $stmt->fetchAll();
+}
 
     // ----------------------------------------------------------------
     // Adicionar lote

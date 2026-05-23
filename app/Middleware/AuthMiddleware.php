@@ -18,6 +18,15 @@ class AuthMiddleware {
         }
     }
 
+    public static function checkAjax(): void {
+        if (empty($_SESSION['usuario_id'])) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['erro' => 'Sessão expirada']);
+            exit;
+        }
+    }
+
     public static function guest(): void {
         if (!empty($_SESSION['usuario_id'])) {
             header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/dashboard');

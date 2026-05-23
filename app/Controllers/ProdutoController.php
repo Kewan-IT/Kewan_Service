@@ -58,7 +58,7 @@ class ProdutoController
 
 public function pesquisarAjax(): void
 {
-    AuthMiddleware::check();
+    AuthMiddleware::checkAjax();
 
     header('Content-Type: application/json; charset=utf-8');
 
