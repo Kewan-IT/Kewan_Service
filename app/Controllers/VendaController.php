@@ -82,6 +82,13 @@ class VendaController
             $stmt->execute([':q1' => '%'.$q.'%', ':q2' => '%'.$q.'%', ':q3' => '%'.$q.'%']);
             $produtos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         }
+// ── Guardar carrinho enviado pelo formulário de pesquisa ──
+if (isset($_GET['cart_data']) && $_GET['cart_data'] !== '') {
+    $cartItems = json_decode($_GET['cart_data'], true);
+    if (is_array($cartItems)) {
+        $_SESSION['carrinho_balcao'] = array_values($cartItems);
+    }
+}
 
         // ── Pesquisa de cliente via GET ──
         $qc      = trim($_GET['qc'] ?? '');

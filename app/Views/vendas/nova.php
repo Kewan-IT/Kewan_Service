@@ -72,6 +72,7 @@ $cp = $clientePresel ?? null;
           <?php endif; ?>
           <input type="hidden" name="qc" value="<?= htmlspecialchars($qc ?? '') ?>">
 
+<input type="hidden" name="cart_data" id="hf-cart-prod" value="">
           <div class="input-group mb-0">
             <input type="text" name="q" id="campo-pesquisa"
                    class="form-control form-control-lg"
@@ -210,6 +211,7 @@ $cp = $clientePresel ?? null;
           <?php if ($q): ?>
           <input type="hidden" name="q" value="<?= htmlspecialchars($q) ?>">
           <?php endif; ?>
+<input type="hidden" name="cart_data" id="hf-cart-cli" value="">
           <div class="input-group input-group-sm mb-1">
             <input type="text" name="qc" class="form-control"
                    placeholder="Nome, telefone ou NUIT..."
@@ -533,7 +535,52 @@ function finalizar() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>A processar...';
   document.getElementById('form-submeter').submit();
+
+
 }
+// ── Guardar carrinho antes de qualquer navegação ─────────
+function cartJson() {
+    return JSON.stringify(cart);
+}
+
+document.getElementById('form-pesq').addEventListener('submit', function () {
+    document.getElementById('hf-cart-prod').value = cartJson();
+});
+
+// Interceptar também o formulário de cliente
+const formCli = document.querySelector('.bloco-body form');
+if (formCli) {
+    formCli.addEventListener('submit', function () {
+        const hf = document.getElementById('hf-cart-cli');
+        if (hf) hf.value = cartJson();
+    });
+}
+
+// Interceptar o link de seleccionar cliente (selCli redireciona)
+const _selCliOrig = window.selCli;
+window.selCli = function (id) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('cliente_id', id);
+    url.searchParams.set('cart_data', cartJson());
+    url.searchParams.delete('qc');
+    window.location.href = url.toString();
+};
+
+// Interceptar o link de remover cliente
+// O botão usa href com ?q=... — adicionar cart_data dinamicamente
+document.querySelectorAll('a[href*="/vendas/nova"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+        e.preventDefault();
+        const url = new URL(this.href);
+        url.searchParams.set('cart_data', cartJson());
+        window.location.href = url.toString();
+    });
+});
+
+// Interceptar o link "Limpar carrinho" (botão lixo)
+document.querySelector('a[href*="limpar=1"]')?.addEventListener('click', function (e) {
+    // Este não precisa de cart_data pois vai limpar mesmo
+});
 
 // ── Utilitários ───────────────────────────────────────────────────────
 function fmt(v) { return parseFloat(v||0).toLocaleString('pt-MZ',{minimumFractionDigits:2,maximumFractionDigits:2})+' MZN'; }
