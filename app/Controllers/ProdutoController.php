@@ -52,66 +52,6 @@ class ProdutoController
         unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro']);
     }
 
-// ================================================================
-// GET /api/produtos/pesquisar
-// ================================================================
-
-public function pesquisarAjax(): void
-{
-    AuthMiddleware::checkAjax();
-
-    header('Content-Type: application/json; charset=utf-8');
-
-    $q = trim($_GET['q'] ?? '');
-
-    if (strlen($q) < 1) {
-        echo json_encode([]);
-        exit;
-    }
-
-    try {
-
-        $db = (new \Core\Database)->getInstance();
-
-        $stmt = $db->prepare("
-            SELECT
-                p.id,
-                p.nome,
-                p.preco_venda,
-                p.estoque_actual,
-                COALESCE(p.requer_receita,0) AS requer_receita,
-                COALESCE(c.nome,'Sem Categoria') AS categoria_nome
-            FROM produtos p
-            LEFT JOIN categorias c
-                ON c.id = p.categoria_id
-            WHERE p.nome LIKE :q
-            ORDER BY p.nome ASC
-            LIMIT 20
-        ");
-
-        $stmt->execute([
-            ':q' => "%{$q}%"
-        ]);
-
-        echo json_encode(
-            $stmt->fetchAll(PDO::FETCH_ASSOC),
-            JSON_UNESCAPED_UNICODE
-        );
-
-        exit;
-
-    } catch (\Throwable $e) {
-
-        http_response_code(500);
-
-        echo json_encode([
-            'erro' => $e->getMessage()
-        ]);
-
-        exit;
-    }
-}
-
     // ================================================================
     // GET /produtos/novo
     // ================================================================
@@ -303,23 +243,40 @@ public function pesquisarAjax(): void
     // ================================================================
     // GET /api/produtos/pesquisar?q=…  — AJAX para balcão de vendas
     // ================================================================
-    public function pesquisar(): void
+    public function pesquisarAjax(): void
     {
         $q = trim($_GET['q'] ?? '');
         if (strlen($q) < 2) {
-            View::json(['produtos' => []]);
+            View::json([]);
             return;
         }
         $produtos = $this->model->pesquisarParaVenda($q, 12);
-        View::json(['produtos' => $produtos]);
+        View::json($produtos);
     }
 
     // ================================================================
     // GET /api/estoque/alertas  — usado pelo header do layout
     // ================================================================
-    public function alertas(): void
+    public function alertasAjax(): void
     {
         View::json($this->model->alertas());
+    }
+
+    // ================================================================
+    // GET /api/produtos/{id}/preco  — AJAX para obter preço do produto
+    // ================================================================
+    public function precoAjax(string $id): void
+    {
+        $produto = $this->model->findById((int) $id);
+        if (!$produto) {
+            View::json(['erro' => 'Produto não encontrado'], 404);
+            return;
+        }
+        View::json([
+            'id'          => $produto['id'],
+            'preco_venda' => $produto['preco_venda'],
+            'nome'        => $produto['nome'],
+        ]);
     }
 
     // ----------------------------------------------------------------

@@ -1,94 +1,88 @@
 <?php
+
 namespace App\Controllers;
+
+use App\Models\Produto;
+use App\Models\Cliente;
+use App\Middleware\AuthMiddleware;
+use Core\View;
 
 class ApiController
 {
-    private function db(): \PDO
+    public function __construct()
     {
-        return \Core\Database::getInstance();
+        AuthMiddleware::check();
     }
 
-    private function json(mixed $data): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-store');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        exit;
-    }
-
+    // GET /api/produtos/pesquisar?q=…
     public function pesquisarProdutos(): void
     {
         $q = trim($_GET['q'] ?? '');
-        if (strlen($q) < 1) { $this->json([]); }
-        try {
-            $stmt = $this->db()->prepare("
-                SELECT
-                    p.id,
-                    p.nome,
-                    p.preco_venda,
-                    p.estoque_actual,
-                    COALESCE(p.requer_receita, 0) AS requer_receita,
-                    COALESCE(p.controlado, 0)     AS controlado,
-                    p.unidade_medida,
-                    COALESCE(c.nome, 'Sem Categoria') AS categoria_nome
-                FROM produtos p
-                LEFT JOIN categorias c ON c.id = p.categoria_id
-                WHERE p.ativo = 1
-                  AND (p.nome LIKE :q OR p.codigo_barras LIKE :q OR p.principio_ativo LIKE :q)
-                ORDER BY p.nome ASC
-                LIMIT 20
-            ");
-            $stmt->execute([':q' => '%' . $q . '%']);
-            $this->json($stmt->fetchAll(\PDO::FETCH_ASSOC));
-        } catch (\Throwable $e) {
-            error_log('API pesquisarProdutos erro: ' . $e->getMessage());
-            $this->json([]);
+        if (strlen($q) < 2) {
+            View::json([]);
+            return;
         }
+        $model    = new Produto();
+        $produtos = $model->pesquisarParaVenda($q, 12);
+        View::json($produtos);
     }
 
+    // GET /api/clientes/pesquisar?q=…
     public function pesquisarClientes(): void
     {
         $q = trim($_GET['q'] ?? '');
-        if (strlen($q) < 1) { $this->json([]); }
-        try {
-            $stmt = $this->db()->prepare("
-                SELECT id, nome, telefone, nuit, bi, email
-                FROM clientes
-                WHERE ativo = 1
-                  AND (nome LIKE :q OR telefone LIKE :q OR nuit LIKE :q OR bi LIKE :q)
-                ORDER BY nome ASC
-                LIMIT 10
-            ");
-            $stmt->execute([':q' => '%' . $q . '%']);
-            $this->json($stmt->fetchAll(\PDO::FETCH_ASSOC));
-        } catch (\Throwable $e) {
-            error_log('API pesquisarClientes erro: ' . $e->getMessage());
-            $this->json([]);
+        if (strlen($q) < 2) {
+            View::json([]);
+            return;
         }
+        $db   = \Core\Database::getInstance();
+        $stmt = $db->prepare("
+            SELECT id, nome, telefone, nuit
+            FROM clientes
+            WHERE ativo = 1
+              AND (nome LIKE :q1 OR telefone LIKE :q2 OR nuit LIKE :q3)
+            ORDER BY nome LIMIT 10
+        ");
+        $stmt->execute([
+            'q1' => '%' . $q . '%',
+            'q2' => '%' . $q . '%',
+            'q3' => '%' . $q . '%',
+        ]);
+        View::json($stmt->fetchAll());
     }
 
+    // GET /api/estoque/alertas
     public function alertasEstoque(): void
     {
-        try {
-            $db = $this->db();
-            $stockBaixo = (int) $db->query("SELECT COUNT(*) FROM produtos WHERE ativo=1 AND estoque_actual < estoque_min")->fetchColumn();
-            $aVencer    = (int) $db->query("SELECT COUNT(*) FROM lotes WHERE quantidade > 0 AND validade BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)")->fetchColumn();
-            $this->json(['stock_baixo' => $stockBaixo, 'a_vencer' => $aVencer, 'total' => $stockBaixo + $aVencer]);
-        } catch (\Throwable $e) {
-            $this->json(['stock_baixo' => 0, 'a_vencer' => 0, 'total' => 0]);
-        }
+        $model = new Produto();
+        View::json($model->alertas());
     }
 
+    // GET /api/dashboard/resumo
     public function resumoDashboard(): void
     {
-        try {
-            $row = $this->db()->query("
-                SELECT COUNT(*) AS total, COALESCE(SUM(total), 0) AS valor
-                FROM vendas WHERE DATE(criado_em) = CURDATE() AND status = 'concluida'
-            ")->fetch(\PDO::FETCH_ASSOC);
-            $this->json(['vendas_hoje' => $row]);
-        } catch (\Throwable $e) {
-            $this->json(['vendas_hoje' => ['total' => 0, 'valor' => 0]]);
-        }
+        $db = \Core\Database::getInstance();
+
+        $vendas_hoje = $db->query("
+            SELECT COUNT(*) as total, COALESCE(SUM(total),0) as valor
+            FROM vendas
+            WHERE DATE(created_at) = CURDATE() AND status = 'concluida'
+        ")->fetch();
+
+        $stock_baixo = $db->query("
+            SELECT COUNT(*) as total FROM produtos
+            WHERE ativo = 1 AND estoque_actual <= estoque_min
+        ")->fetchColumn();
+
+        View::json([
+            'vendas_hoje'  => $vendas_hoje,
+            'stock_baixo'  => $stock_baixo,
+        ]);
+    }
+
+    // GET /api/estoque/alertas (alias para VendaController::alertasStock)
+    public function alertasStock(): void
+    {
+        $this->alertasEstoque();
     }
 }
