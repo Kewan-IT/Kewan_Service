@@ -9,13 +9,39 @@
 .produto-resultado { cursor:pointer; padding:10px 14px; border-bottom:1px solid #f0f0f0; transition:background .1s; }
 .produto-resultado:hover { background:#f0f9f4; }
 .produto-resultado:last-child { border-bottom:none; }
-.num-pad button { border-radius:8px; font-size:16px; font-weight:600; height:52px; }
 .badge-receita { font-size:10px; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:2px 6px; border-radius:4px; }
+/* Badges de lote */
+.badge-lote-ok      { font-size:10px; background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; padding:2px 6px; border-radius:4px; }
+.badge-lote-aviso   { font-size:10px; background:#fef9c3; color:#713f12; border:1px solid #fde047; padding:2px 6px; border-radius:4px; }
+.badge-lote-atencao { font-size:10px; background:#ffedd5; color:#9a3412; border:1px solid #fdba74; padding:2px 6px; border-radius:4px; }
+.badge-lote-critico { font-size:10px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; padding:2px 6px; border-radius:4px; }
+.lote-info { font-size:11px; color:#6b7280; margin-top:2px; display:flex; align-items:center; gap:6px; }
 @media(max-width:900px){
   .pos-wrapper { grid-template-columns:1fr; }
   .pos-right { order:-1; }
 }
 </style>
+
+<?php
+// ─── Alertas de lotes ───────────────────────────────────────────────
+$alertas30 = $alertas30 ?? [];
+$vencidos  = $vencidos  ?? [];
+$totalAlertas = count($alertas30) + count($vencidos);
+?>
+
+<?php if ($totalAlertas > 0): ?>
+<div class="alert alert-warning alert-dismissible fade show py-2 mb-3" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <?php if (count($vencidos) > 0): ?>
+    <strong><?= count($vencidos) ?> lote(s) vencido(s)</strong> com stock em armazém.
+  <?php endif; ?>
+  <?php if (count($alertas30) > 0): ?>
+    <strong><?= count($alertas30) ?> lote(s)</strong> a vencer nos próximos 30 dias.
+  <?php endif; ?>
+  <a href="<?= $appUrl ?>/relatorios/lotes-a-vencer" class="alert-link ms-2">Ver relatório →</a>
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
 
 <div class="d-flex align-items-center justify-content-between mb-3">
   <div>
@@ -57,7 +83,7 @@
           </button>
         </div>
         <div id="resultados-produtos" class="border rounded mt-1 bg-white d-none"
-             style="max-height:280px;overflow-y:auto;position:relative;z-index:100">
+             style="max-height:320px;overflow-y:auto;position:relative;z-index:100">
         </div>
       </div>
     </div>
@@ -79,7 +105,7 @@
             <table class="table cart-table align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th class="ps-3">Produto</th>
+                  <th class="ps-3">Produto / Lote (FEFO)</th>
                   <th class="text-center" style="width:100px">Qtd</th>
                   <th class="text-end" style="width:110px">Preço</th>
                   <th class="text-end" style="width:110px">Subtotal</th>
@@ -258,6 +284,16 @@ document.getElementById('pesquisa-produto').addEventListener('keydown', function
 
 let _produtosCache = {};
 
+// ── Badge de validade ──
+function badgeLote(diasParaVencer, numeroLote) {
+  if (!numeroLote) return '';
+  let cls = 'badge-lote-ok', txt = 'OK';
+  if (diasParaVencer <= 30)      { cls = 'badge-lote-critico'; txt = `${diasParaVencer}d`; }
+  else if (diasParaVencer <= 60) { cls = 'badge-lote-atencao'; txt = `${diasParaVencer}d`; }
+  else if (diasParaVencer <= 90) { cls = 'badge-lote-aviso';   txt = `${diasParaVencer}d`; }
+  return `<span class="${cls}">Lote: ${escHtml(numeroLote)} · ${txt}</span>`;
+}
+
 async function pesquisarProduto(q) {
   try {
     const res  = await fetch(`${APP_URL}/api/produtos/pesquisar?q=${encodeURIComponent(q)}`);
@@ -271,26 +307,32 @@ async function pesquisarProduto(q) {
       return;
     }
 
-    // Guardar produtos em cache para evitar JSON inline no onclick
     data.forEach(p => { _produtosCache[p.id] = p; });
 
-    div.innerHTML = data.map(p => `
+    div.innerHTML = data.map(p => {
+      // Validade do lote FEFO mais antigo
+      let loteHtml = '';
+      if (p.proxima_validade) {
+        const dias = Math.round((new Date(p.proxima_validade) - new Date()) / 86400000);
+        loteHtml = badgeLote(dias, p.numero_lote || 'FEFO');
+      }
+      return `
       <div class="produto-resultado" data-produto-id="${p.id}">
         <div class="d-flex justify-content-between align-items-start">
           <div>
             <div class="fw-semibold" style="font-size:13px">${escHtml(p.nome)}
               ${p.requer_receita ? '<span class="badge-receita ms-1">RX</span>' : ''}
             </div>
-            <div class="text-muted" style="font-size:11px">${escHtml(p.categoria_nome || p.categoria || '')}</div>
+            <div class="lote-info">${escHtml(p.categoria_nome || p.categoria || '')} ${loteHtml}</div>
           </div>
           <div class="text-end">
             <div class="fw-bold text-success" style="font-size:13px">${formatMZN(p.preco_venda)}</div>
             <div class="text-muted" style="font-size:11px">Stock: ${p.estoque_actual}</div>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
-    // Event listeners seguros em vez de onclick inline
     div.querySelectorAll('.produto-resultado').forEach(el => {
       el.addEventListener('click', function() {
         const pid = parseInt(this.dataset.produtoId);
@@ -299,12 +341,11 @@ async function pesquisarProduto(q) {
     });
 
     div.classList.remove('d-none');
-  } catch (e) {
-    console.error(e);
-  }
+  } catch(e) { console.error(e); }
 }
 
-function adicionarAoCarrinho(produto) {
+// ── Adicionar ao carrinho com info de lote FEFO ──
+async function adicionarAoCarrinho(produto) {
   fecharResultados('resultados-produtos');
   _ignorarInputProduto = true;
   document.getElementById('pesquisa-produto').value = '';
@@ -320,15 +361,26 @@ function adicionarAoCarrinho(produto) {
       alert(`Stock insuficiente. Disponível: ${produto.estoque_actual}`);
     }
   } else {
+    // Buscar lotes disponíveis para mostrar info FEFO
+    let loteInfo = null;
+    try {
+      const r = await fetch(`${APP_URL}/api/produtos/${produto.id}/lotes`);
+      const lotes = await r.json();
+      if (lotes.length > 0) {
+        loteInfo = lotes[0]; // primeiro = mais antigo (FEFO)
+      }
+    } catch(e) { /* ignora erro de rede */ }
+
     carrinho.push({
-      produto_id:     produto.id,
-      nome:           produto.nome,
-      preco_unitario: parseFloat(produto.preco_venda),
-      quantidade:     1,
-      desconto_item:  0,
-      subtotal:       parseFloat(produto.preco_venda),
-      estoque_max:    produto.estoque_actual,
-      requer_receita: produto.requer_receita,
+      produto_id:       produto.id,
+      nome:             produto.nome,
+      preco_unitario:   parseFloat(produto.preco_venda),
+      quantidade:       1,
+      desconto_item:    0,
+      subtotal:         parseFloat(produto.preco_venda),
+      estoque_max:      produto.estoque_actual,
+      requer_receita:   produto.requer_receita,
+      lote_info:        loteInfo, // {numero_lote, validade, dias_para_vencer, status_validade}
     });
   }
 
@@ -341,7 +393,7 @@ function recalcularItem(idx) {
   item.subtotal = Math.max(0, item.subtotal);
 }
 
-// ── Renderizar carrinho ──
+// ── Renderizar carrinho com info de lote ──
 function renderCarrinho() {
   const tbody   = document.getElementById('tbody-carrinho');
   const vazio   = document.getElementById('carrinho-vazio');
@@ -366,13 +418,22 @@ function renderCarrinho() {
   const temReceita = carrinho.some(i => i.requer_receita == 1);
   alertaRx.classList.toggle('d-none', !temReceita);
 
-  tbody.innerHTML = carrinho.map((item, idx) => `
+  tbody.innerHTML = carrinho.map((item, idx) => {
+    // Info do lote FEFO
+    let loteHtml = '<span style="color:#9ca3af;font-size:10px">Sem lote registado</span>';
+    if (item.lote_info) {
+      const l = item.lote_info;
+      const dataFmt = l.validade ? new Date(l.validade).toLocaleDateString('pt-MZ') : '';
+      loteHtml = badgeLote(l.dias_para_vencer, l.numero_lote) +
+        (dataFmt ? `<span style="color:#9ca3af;font-size:10px"> Val: ${dataFmt}</span>` : '');
+    }
+    return `
     <tr>
       <td class="ps-3">
         <div class="fw-semibold" style="font-size:13px">${escHtml(item.nome)}
           ${item.requer_receita ? '<span class="badge-receita ms-1">RX</span>' : ''}
         </div>
-        <div style="font-size:11px;color:#888">${formatMZN(item.preco_unitario)} / un.</div>
+        <div class="lote-info">${loteHtml}</div>
       </td>
       <td class="text-center">
         <div class="d-flex align-items-center justify-content-center gap-1">
@@ -394,7 +455,8 @@ function renderCarrinho() {
           <i class="bi bi-trash3"></i>
         </button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   document.getElementById('btn-finalizar').disabled = false;
   recalcularTotal();
@@ -471,7 +533,6 @@ function selecionarForma(btn) {
   formaActual = btn.dataset.forma;
   document.getElementById('input_forma_pagamento').value = formaActual;
 
-  // Se não for dinheiro, assume valor exacto
   if (formaActual !== 'dinheiro') {
     valorExato();
     document.getElementById('atalhos-valor').style.opacity = '0.4';
@@ -554,9 +615,7 @@ function finalizarVenda() {
     return;
   }
 
-  if (valorPago <= 0) {
-    valorExato();
-  }
+  if (valorPago <= 0) { valorExato(); }
 
   document.getElementById('itens_json').value = JSON.stringify(
     carrinho.map(i => ({
@@ -577,20 +636,16 @@ function finalizarVenda() {
 function fecharResultados(id) {
   document.getElementById(id)?.classList.add('d-none');
 }
-
 function focarPesquisa() {
   document.getElementById('pesquisa-produto').focus();
 }
-
 function formatMZN(val) {
   return parseFloat(val).toLocaleString('pt-MZ', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' MZN';
 }
-
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Fechar dropdowns ao clicar fora
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#pesquisa-produto') && !e.target.closest('#resultados-produtos')) {
     fecharResultados('resultados-produtos');
@@ -600,6 +655,5 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// Foco inicial
 document.getElementById('pesquisa-produto').focus();
 </script>

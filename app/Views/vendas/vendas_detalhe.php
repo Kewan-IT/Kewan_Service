@@ -153,8 +153,19 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
             <tr>
               <td class="ps-3">
                 <div class="fw-semibold"><?= htmlspecialchars($item['produto_nome']) ?></div>
-                <?php if ($item['numero_lote']): ?>
-                <div class="text-muted small">Lote: <?= htmlspecialchars($item['numero_lote']) ?></div>
+                <?php if (!empty($item['numero_lote'])): ?>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                  <span style="font-size:11px;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;padding:1px 6px;border-radius:4px;">
+                    <i class="bi bi-tag me-1"></i>Lote: <?= htmlspecialchars($item['numero_lote']) ?>
+                  </span>
+                  <?php if (!empty($item['lote_validade'])): ?>
+                  <span style="font-size:11px;color:#6b7280;">
+                    Val: <?= date('d/m/Y', strtotime($item['lote_validade'])) ?>
+                  </span>
+                  <?php endif; ?>
+                </div>
+                <?php else: ?>
+                <div class="text-muted" style="font-size:11px;margin-top:2px;">Sem rastreio de lote</div>
                 <?php endif; ?>
               </td>
               <td class="text-center"><?= $item['quantidade'] ?> <?= htmlspecialchars($item['unidade_medida']) ?></td>
