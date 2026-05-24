@@ -18,7 +18,7 @@ class RelatorioController
     }
 
     // ================================================================
-    // GET /relatorios — Página principal
+    // GET /relatorios
     // ================================================================
     public function index(): void
     {
@@ -35,18 +35,17 @@ class RelatorioController
     public function vendas(): void
     {
         $filtros = $this->filtrosVendas();
-
         View::render('relatorios.vendas', [
-            'titulo'     => 'Relatório de Vendas',
-            'activePage' => 'relatorios',
-            'breadcrumb' => ['Relatórios' => '/relatorios', 'Vendas' => null],
-            'filtros'    => $filtros,
-            'resumo'     => $this->resumoVendas($filtros),
-            'vendas'     => $this->dadosVendas($filtros),
-            'por_dia'    => $this->vendasPorDia($filtros),
-            'por_pagamento' => $this->vendasPorPagamento($filtros),
+            'titulo'          => 'Relatório de Vendas',
+            'activePage'      => 'relatorios',
+            'breadcrumb'      => ['Relatórios' => '/relatorios', 'Vendas' => null],
+            'filtros'         => $filtros,
+            'resumo'          => $this->fetchResumoVendas($this->whereVendas($filtros), $this->paramsVendas($filtros)),
+            'vendas'          => $this->dadosVendas($filtros),
+            'por_dia'         => $this->vendasPorDia($filtros),
+            'por_pagamento'   => $this->vendasPorPagamento($filtros),
             'por_funcionario' => $this->vendasPorFuncionario($filtros),
-            'funcionarios'   => $this->todosFuncionarios(),
+            'funcionarios'    => $this->todosFuncionarios(),
         ]);
     }
 
@@ -57,16 +56,14 @@ class RelatorioController
     {
         $filtros = $this->filtrosVendas();
         $appUrl  = $_ENV['APP_URL'] ?? '';
-
         extract([
-            'filtros'          => $filtros,
-            'resumo'           => $this->resumoVendas($filtros),
-            'vendas'           => $this->dadosVendas($filtros),
-            'por_pagamento'    => $this->vendasPorPagamento($filtros),
-            'por_funcionario'  => $this->vendasPorFuncionario($filtros),
-            'appUrl'           => $appUrl,
+            'filtros'         => $filtros,
+            'resumo'          => $this->fetchResumoVendas($this->whereVendas($filtros), $this->paramsVendas($filtros)),
+            'vendas'          => $this->dadosVendas($filtros),
+            'por_pagamento'   => $this->vendasPorPagamento($filtros),
+            'por_funcionario' => $this->vendasPorFuncionario($filtros),
+            'appUrl'          => $appUrl,
         ]);
-
         require __DIR__ . '/../../app/Views/relatorios/vendas_pdf.php';
         exit;
     }
@@ -76,11 +73,34 @@ class RelatorioController
     // ================================================================
     public function stock(): void
     {
+        $filtros = $this->filtrosStock();
         View::render('relatorios.stock', [
-            'titulo'     => 'Relatório de Stock',
-            'activePage' => 'relatorios',
-            'breadcrumb' => ['Relatórios' => '/relatorios', 'Stock' => null],
+            'titulo'        => 'Relatório de Stock',
+            'activePage'    => 'relatorios',
+            'breadcrumb'    => ['Relatórios' => '/relatorios', 'Stock' => null],
+            'filtros'       => $filtros,
+            'resumo'        => $this->resumoStock($filtros),
+            'produtos'      => $this->dadosStock($filtros),
+            'por_categoria' => $this->stockPorCategoria($filtros),
+            'categorias'    => $this->todasCategorias(),
         ]);
+    }
+
+    // ================================================================
+    // GET /relatorios/stock/pdf
+    // ================================================================
+    public function stockPdf(): void
+    {
+        $filtros = $this->filtrosStock();
+        $appUrl  = $_ENV['APP_URL'] ?? '';
+        extract([
+            'filtros'  => $filtros,
+            'resumo'   => $this->resumoStock($filtros),
+            'produtos' => $this->dadosStock($filtros),
+            'appUrl'   => $appUrl,
+        ]);
+        require __DIR__ . '/../../app/Views/relatorios/relatorios_stock_pdf.php';
+        exit;
     }
 
     // ================================================================
@@ -88,11 +108,42 @@ class RelatorioController
     // ================================================================
     public function lotesAVencer(): void
     {
+        $prazo  = (int)($_GET['prazo'] ?? 30);
+        $tipo   = $_GET['tipo'] ?? 'proximos'; // proximos | vencidos | todos
+        $cat    = $_GET['categoria_id'] ?? '';
+
         View::render('relatorios.lotes_vencer', [
             'titulo'     => 'Lotes a Vencer',
             'activePage' => 'relatorios',
             'breadcrumb' => ['Relatórios' => '/relatorios', 'Lotes a Vencer' => null],
+            'prazo'      => $prazo,
+            'tipo'       => $tipo,
+            'categoria'  => $cat,
+            'resumo'     => $this->resumoLotes($prazo),
+            'lotes'      => $this->dadosLotes($prazo, $tipo, $cat),
+            'categorias' => $this->todasCategorias(),
         ]);
+    }
+
+    // ================================================================
+    // GET /relatorios/lotes-a-vencer/pdf
+    // ================================================================
+    public function lotesAVencerPdf(): void
+    {
+        $prazo  = (int)($_GET['prazo'] ?? 30);
+        $tipo   = $_GET['tipo'] ?? 'proximos';
+        $cat    = $_GET['categoria_id'] ?? '';
+        $appUrl = $_ENV['APP_URL'] ?? '';
+
+        extract([
+            'prazo'     => $prazo,
+            'tipo'      => $tipo,
+            'resumo'    => $this->resumoLotes($prazo),
+            'lotes'     => $this->dadosLotes($prazo, $tipo, $cat),
+            'appUrl'    => $appUrl,
+        ]);
+        require __DIR__ . '/../../app/Views/relatorios/lotes_vencer_pdf.php';
+        exit;
     }
 
     // ================================================================
@@ -113,17 +164,12 @@ class RelatorioController
     private function filtrosVendas(): array
     {
         return [
-            'data_inicio'      => $_GET['data_inicio']      ?? date('Y-m-01'),
-            'data_fim'         => $_GET['data_fim']          ?? date('Y-m-d'),
-            'funcionario_id'   => $_GET['funcionario_id']   ?? '',
-            'forma_pagamento'  => $_GET['forma_pagamento']  ?? '',
-            'status'           => $_GET['status']            ?? 'concluida',
+            'data_inicio'     => $_GET['data_inicio']     ?? date('Y-m-01'),
+            'data_fim'        => $_GET['data_fim']         ?? date('Y-m-d'),
+            'funcionario_id'  => $_GET['funcionario_id']  ?? '',
+            'forma_pagamento' => $_GET['forma_pagamento'] ?? '',
+            'status'          => $_GET['status']           ?? 'concluida',
         ];
-    }
-
-    private function resumoVendas(array $f): array
-    {
-        return $this->fetchResumoVendas($this->whereVendas($f), $this->paramsVendas($f));
     }
 
     private function fetchResumoVendas(string $where, array $params): array
@@ -147,8 +193,7 @@ class RelatorioController
     {
         $where  = $this->whereVendas($f);
         $params = $this->paramsVendas($f);
-
-        $stmt = $this->db->prepare("
+        $stmt   = $this->db->prepare("
             SELECT v.id, v.numero_venda, v.criado_em, v.forma_pagamento,
                    v.subtotal, v.desconto, v.total, v.status,
                    COALESCE(c.nome, 'Balcão') AS cliente_nome,
@@ -169,11 +214,8 @@ class RelatorioController
     {
         $where  = $this->whereVendas($f);
         $params = $this->paramsVendas($f);
-
-        $stmt = $this->db->prepare("
-            SELECT DATE(v.criado_em) AS dia,
-                   COUNT(*)          AS total_vendas,
-                   SUM(v.total)      AS valor_total
+        $stmt   = $this->db->prepare("
+            SELECT DATE(v.criado_em) AS dia, COUNT(*) AS total_vendas, SUM(v.total) AS valor_total
             FROM vendas v
             LEFT JOIN usuarios u ON u.id = v.usuario_id
             WHERE $where
@@ -188,11 +230,8 @@ class RelatorioController
     {
         $where  = $this->whereVendas($f);
         $params = $this->paramsVendas($f);
-
-        $stmt = $this->db->prepare("
-            SELECT v.forma_pagamento,
-                   COUNT(*)     AS total_vendas,
-                   SUM(v.total) AS valor_total
+        $stmt   = $this->db->prepare("
+            SELECT v.forma_pagamento, COUNT(*) AS total_vendas, SUM(v.total) AS valor_total
             FROM vendas v
             LEFT JOIN usuarios u ON u.id = v.usuario_id
             WHERE $where
@@ -207,12 +246,9 @@ class RelatorioController
     {
         $where  = $this->whereVendas($f);
         $params = $this->paramsVendas($f);
-
-        $stmt = $this->db->prepare("
-            SELECT u.nome AS funcionario_nome,
-                   COUNT(v.id)   AS total_vendas,
-                   SUM(v.total)  AS valor_total,
-                   AVG(v.total)  AS ticket_medio
+        $stmt   = $this->db->prepare("
+            SELECT u.nome AS funcionario_nome, COUNT(v.id) AS total_vendas,
+                   SUM(v.total) AS valor_total, AVG(v.total) AS ticket_medio
             FROM vendas v
             LEFT JOIN usuarios u ON u.id = v.usuario_id
             WHERE $where
@@ -239,13 +275,186 @@ class RelatorioController
 
     private function paramsVendas(array $f): array
     {
-        $p = [
-            'data_inicio' => $f['data_inicio'],
-            'data_fim'    => $f['data_fim'],
-        ];
+        $p = ['data_inicio' => $f['data_inicio'], 'data_fim' => $f['data_fim']];
         if (!empty($f['funcionario_id']))  $p['funcionario_id']  = $f['funcionario_id'];
         if (!empty($f['forma_pagamento'])) $p['forma_pagamento'] = $f['forma_pagamento'];
         if (!empty($f['status']))          $p['status']          = $f['status'];
         return $p;
+    }
+
+    // ----------------------------------------------------------------
+    // Helpers — Stock
+    // ----------------------------------------------------------------
+    private function filtrosStock(): array
+    {
+        return [
+            'categoria_id' => $_GET['categoria_id'] ?? '',
+            'estado'       => $_GET['estado']       ?? '',
+            'q'            => trim($_GET['q']       ?? ''),
+        ];
+    }
+
+    private function stockWhereClause(array $f): string
+    {
+        $where = ['p.ativo = 1'];
+
+        if (!empty($f['q'])) {
+            $where[] = '(p.nome LIKE :q1 OR p.codigo_barras LIKE :q2)';
+        }
+
+        if (!empty($f['categoria_id'])) {
+            $where[] = 'p.categoria_id = :cat';
+        }
+
+        if ($f['estado'] === 'baixo') {
+            $where[] = 'p.estoque_actual <= p.estoque_min AND p.estoque_actual > 0';
+        } elseif ($f['estado'] === 'esgotado') {
+            $where[] = 'p.estoque_actual <= 0';
+        } elseif ($f['estado'] === 'normal') {
+            $where[] = 'p.estoque_actual > p.estoque_min';
+        }
+
+        return implode(' AND ', $where);
+    }
+
+    private function stockParams(array $f): array
+    {
+        $params = [];
+
+        if (!empty($f['q'])) {
+            $params['q1'] = '%'.$f['q'].'%';
+            $params['q2'] = '%'.$f['q'].'%';
+        }
+
+        if (!empty($f['categoria_id'])) {
+            $params['cat'] = $f['categoria_id'];
+        }
+
+        return $params;
+    }
+
+    private function resumoStock(array $f): array
+    {
+        $where  = $this->stockWhereClause($f);
+        $params = $this->stockParams($f);
+
+        $stmt = $this->db->prepare("
+            SELECT
+                COUNT(*) AS total_produtos,
+                COALESCE(SUM(CASE WHEN p.estoque_actual <= p.estoque_min AND p.estoque_actual > 0 THEN 1 ELSE 0 END), 0) AS stock_baixo,
+                COALESCE(SUM(CASE WHEN p.estoque_actual <= 0 THEN 1 ELSE 0 END), 0) AS esgotados,
+                COALESCE(SUM(p.estoque_actual * p.preco_compra), 0) AS valor_total
+            FROM produtos p
+            WHERE $where
+        ");
+        $stmt->execute($params);
+        return $stmt->fetch() ?: [];
+    }
+
+    private function dadosStock(array $f): array
+    {
+        $where  = $this->stockWhereClause($f);
+        $params = $this->stockParams($f);
+
+        $stmt = $this->db->prepare("
+            SELECT p.id, p.nome, p.codigo_barras, p.estoque_actual, p.estoque_min,
+                   p.preco_compra, p.preco_venda, p.unidade_medida,
+                   c.nome AS categoria_nome
+            FROM produtos p
+            JOIN categorias c ON c.id = p.categoria_id
+            WHERE $where
+            ORDER BY p.estoque_actual ASC, p.nome ASC
+        ");
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    private function stockPorCategoria(array $f): array
+    {
+        $where  = $this->stockWhereClause($f);
+        $params = $this->stockParams($f);
+
+        $stmt = $this->db->prepare("
+            SELECT c.nome AS categoria_nome,
+                   COUNT(p.id) AS total_produtos,
+                   COALESCE(SUM(p.estoque_actual), 0) AS total_stock,
+                   COALESCE(SUM(p.estoque_actual * p.preco_compra), 0) AS valor_stock
+            FROM produtos p
+            JOIN categorias c ON c.id = p.categoria_id
+            WHERE $where
+            GROUP BY c.id, c.nome
+            ORDER BY valor_stock DESC
+        ");
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    private function todasCategorias(): array
+    {
+        return $this->db->query("SELECT id, nome FROM categorias WHERE ativo = 1 ORDER BY nome")->fetchAll();
+    }
+
+    // ----------------------------------------------------------------
+    // Helpers — Lotes a Vencer
+    // ----------------------------------------------------------------
+    private function resumoLotes(int $prazo): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT
+                SUM(validade < CURDATE() AND quantidade > 0)                              AS vencidos,
+                SUM(validade >= CURDATE() AND DATEDIFF(validade, CURDATE()) <= :p30 AND quantidade > 0) AS ate_30_dias,
+                SUM(validade >= CURDATE() AND DATEDIFF(validade, CURDATE()) <= :p60 AND quantidade > 0) AS ate_60_dias,
+                SUM(validade >= CURDATE() AND DATEDIFF(validade, CURDATE()) <= :p90 AND quantidade > 0) AS ate_90_dias,
+                SUM(CASE WHEN validade < CURDATE() THEN quantidade ELSE 0 END)            AS qtd_vencida,
+                SUM(CASE WHEN validade >= CURDATE() AND DATEDIFF(validade, CURDATE()) <= :p902 THEN quantidade ELSE 0 END) AS qtd_proxima
+            FROM lotes
+        ");
+        $stmt->execute(['p30' => 30, 'p60' => 60, 'p90' => 90, 'p902' => 90]);
+        return $stmt->fetch() ?: [];
+    }
+
+    private function dadosLotes(int $prazo, string $tipo, string $cat): array
+    {
+        $where  = ['l.quantidade >= 0'];
+        $params = [];
+
+        if ($tipo === 'vencidos') {
+            $where[] = 'l.validade < CURDATE()';
+            $where[] = 'l.quantidade > 0';
+        } elseif ($tipo === 'proximos') {
+            $where[]      = 'l.validade >= CURDATE()';
+            $where[]      = 'DATEDIFF(l.validade, CURDATE()) <= :prazo';
+            $where[]      = 'l.quantidade > 0';
+            $params['prazo'] = $prazo;
+        } else {
+            // todos — vencidos + próximos dentro do prazo
+            $where[]      = '(l.validade < CURDATE() OR DATEDIFF(l.validade, CURDATE()) <= :prazo)';
+            $where[]      = 'l.quantidade > 0';
+            $params['prazo'] = $prazo;
+        }
+
+        if (!empty($cat)) {
+            $where[]      = 'p.categoria_id = :cat';
+            $params['cat'] = $cat;
+        }
+
+        $stmt = $this->db->prepare("
+            SELECT
+                l.id, l.numero_lote, l.quantidade, l.validade, l.data_entrada,
+                DATEDIFF(l.validade, CURDATE()) AS dias_para_vencer,
+                p.id AS produto_id, p.nome AS produto_nome,
+                p.preco_venda, p.unidade_medida,
+                c.nome AS categoria_nome,
+                f.nome AS fornecedor_nome,
+                (l.quantidade * p.preco_compra) AS valor_em_risco
+            FROM lotes l
+            JOIN produtos   p ON p.id = l.produto_id
+            JOIN categorias c ON c.id = p.categoria_id
+            LEFT JOIN fornecedores f ON f.id = p.fornecedor_id
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY l.validade ASC
+        ");
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 }
