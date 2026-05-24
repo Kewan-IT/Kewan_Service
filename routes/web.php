@@ -81,6 +81,8 @@ $router->get('/relatorios/stock/pdf',      ['RelatorioController', 'stockPdf']);
 $router->get('/relatorios/lotes-a-vencer', ['RelatorioController', 'lotesAVencer']);
 $router->get('/relatorios/funcionarios',   ['RelatorioController', 'funcionarios']);
 $router->get('/relatorios/lotes-a-vencer/pdf', ['RelatorioController', 'lotesAVencerPdf']);
+$router->get('/relatorios/funcionarios/pdf',   ['RelatorioController', 'funcionariosPdf']);
+$router->get('/relatorios/stock/pdf',          ['RelatorioController', 'stockPdf']);
 
 // ── Configurações ────────────────────────────────────────────────
 $router->get('/configuracoes',  ['ConfiguracaoController', 'index']);
