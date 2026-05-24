@@ -41,12 +41,22 @@
 <body>
 
   <!-- Cabeçalho -->
+  <?php if (!empty($config['logo_farmacia'])): ?>
+  <div class="c" style="margin-bottom:8px">
+    <img src="<?= ($_ENV['APP_URL'] ?? '') ?>/storage/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
+         alt="Logo da farmácia"
+         style="max-width:100px; max-height:70px; object-fit:contain;">
+  </div>
+  <?php endif; ?>
   <h1><?= htmlspecialchars($config['nome_farmacia'] ?? 'KewanFarma') ?></h1>
   <?php if (!empty($config['endereco_farmacia'])): ?>
   <p class="c" style="font-size:11px"><?= htmlspecialchars($config['endereco_farmacia']) ?></p>
   <?php endif; ?>
   <?php if (!empty($config['telefone_farmacia'])): ?>
   <p class="c" style="font-size:11px">Tel: <?= htmlspecialchars($config['telefone_farmacia']) ?></p>
+  <?php endif; ?>
+  <?php if (!empty($config['email_farmacia'])): ?>
+  <p class="c" style="font-size:11px">Email: <?= htmlspecialchars($config['email_farmacia']) ?></p>
   <?php endif; ?>
   <?php if (!empty($config['nuit_farmacia'])): ?>
   <p class="c" style="font-size:11px">NUIT: <?= htmlspecialchars($config['nuit_farmacia']) ?></p>

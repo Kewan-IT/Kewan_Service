@@ -16,6 +16,10 @@ class UploadService {
         return $this->upload($file, 'funcionarios/fotos/', $numeroFuncionario, $this->allowedImages);
     }
 
+    public function uploadLogo(array $file): ?string {
+        return $this->upload($file, 'logos/', 'logo_' . time(), $this->allowedImages);
+    }
+
     public function uploadDocumento(array $file, string $numeroFuncionario, string $sufixo): ?string {
         return $this->upload($file, 'funcionarios/docs/', $numeroFuncionario . '_' . $sufixo, $this->allowedDocs);
     }
