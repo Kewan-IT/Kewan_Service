@@ -21,6 +21,33 @@ class Configuracao extends BaseModel
         return $config;
     }
 
+    public function getAllWithDefaults(): array
+    {
+        $config = $this->getAll();
+
+        $defaults = [
+            'nome_farmacia' => 'KewanFarma',
+            'nuit_farmacia' => '',
+            'endereco_farmacia' => '',
+            'telefone_farmacia' => '',
+            'email_farmacia' => '',
+            'logo_farmacia' => '',
+            'moeda' => 'MZN',
+            'iva_percentagem' => '16',
+            'prefixo_venda' => 'VD',
+            'prefixo_compra' => 'CP',
+            'dias_alerta_validade' => '90',
+        ];
+
+        foreach ($defaults as $key => $value) {
+            if (!array_key_exists($key, $config) || $config[$key] === null) {
+                $config[$key] = $value;
+            }
+        }
+
+        return $config;
+    }
+
     public function salvar(array $dados): void
     {
         $stmt = $this->db->prepare(

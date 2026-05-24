@@ -62,8 +62,24 @@ $totalGeral = array_sum(array_column($ranking, 'valor_total'));
 
   <div class="header">
     <div>
-      <div class="company-name"><?= htmlspecialchars($_ENV['APP_NAME'] ?? 'KewanFarma') ?></div>
-      <div class="company-sub">Farmácia</div>
+      <?php if (!empty($config['logo_farmacia'])): ?>
+      <div style="margin-bottom:8px">
+        <img src="<?= $appUrl ?>/storage/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
+             alt="Logo da farmácia"
+             style="max-width:100px; max-height:60px; object-fit:contain;">
+      </div>
+      <?php endif; ?>
+      <div class="company-name"><?= htmlspecialchars($config['nome_farmacia'] ?? $_ENV['APP_NAME'] ?? 'KewanFarma') ?></div>
+      <div class="company-sub"><?= htmlspecialchars($config['endereco_farmacia'] ?: 'Farmácia') ?></div>
+      <?php if (!empty($config['telefone_farmacia']) || !empty($config['email_farmacia']) || !empty($config['nuit_farmacia'])): ?>
+      <div class="company-sub">
+        <?= implode(' • ', array_filter([
+          !empty($config['telefone_farmacia']) ? 'Tel: ' . htmlspecialchars($config['telefone_farmacia']) : null,
+          !empty($config['email_farmacia']) ? 'Email: ' . htmlspecialchars($config['email_farmacia']) : null,
+          !empty($config['nuit_farmacia']) ? 'NUIT: ' . htmlspecialchars($config['nuit_farmacia']) : null,
+        ])) ?>
+      </div>
+      <?php endif; ?>
     </div>
     <div>
       <div class="doc-title"><h1>Desempenho de Funcionários</h1></div>
@@ -154,7 +170,16 @@ $totalGeral = array_sum(array_column($ranking, 'valor_total'));
   </table>
 
   <div class="footer">
-    <div><?= htmlspecialchars($_ENV['APP_NAME'] ?? 'KewanFarma') ?> · Gerado em <?= date('d/m/Y \à\s H:i') ?></div>
+    <div>
+      <?= htmlspecialchars($config['nome_farmacia'] ?? $_ENV['APP_NAME'] ?? 'KewanFarma') ?><br>
+      <?= htmlspecialchars(trim(implode(' • ', array_filter([
+        !empty($config['endereco_farmacia']) ? htmlspecialchars($config['endereco_farmacia']) : null,
+        !empty($config['telefone_farmacia']) ? 'Tel: ' . htmlspecialchars($config['telefone_farmacia']) : null,
+        !empty($config['email_farmacia']) ? 'Email: ' . htmlspecialchars($config['email_farmacia']) : null,
+        !empty($config['nuit_farmacia']) ? 'NUIT: ' . htmlspecialchars($config['nuit_farmacia']) : null,
+      ]))) ?: 'Farmácia') ?><br>
+      Gerado em <?= date('d/m/Y \à\s H:i') ?>
+    </div>
     <div class="assinatura">
       <div class="assinatura-linha"></div>
       Responsável

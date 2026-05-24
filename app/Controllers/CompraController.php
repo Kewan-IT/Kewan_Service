@@ -4,6 +4,7 @@ namespace App\Controllers;
  
 use App\Models\Compra;
 use App\Models\Produto;
+use App\Models\Configuracao;
 use App\Middleware\AuthMiddleware;
 use Core\View;
  
@@ -210,7 +211,8 @@ public function pdf(string $id): void
     if (!$compra) { $this->notFound(); return; }
 
     $appUrl = $_ENV['APP_URL'] ?? '';
-    extract(['compra' => $compra, 'appUrl' => $appUrl]);
+    $config = (new Configuracao())->getAllWithDefaults();
+    extract(['compra' => $compra, 'appUrl' => $appUrl, 'config' => $config]);
     require __DIR__ . '/../../app/Views/compras/compras_pdf.php';
     exit;
 }

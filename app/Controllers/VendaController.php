@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Models\Venda;
 use App\Models\Produto;
 use App\Models\Cliente;
+use App\Models\Configuracao;
 use App\Middleware\AuthMiddleware;
 use Core\View;
 
@@ -229,7 +230,9 @@ class VendaController
             http_response_code(404);
             return;
         }
-        View::render('vendas.talao', ['venda' => $venda]);
+
+        $config = (new Configuracao())->getAllWithDefaults();
+        View::render('vendas.talao', ['venda' => $venda, 'config' => $config]);
     }
 
     // ================================================================

@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Middleware\AuthMiddleware;
+use App\Models\Configuracao;
 use Core\View;
 use Core\Database;
 use PDO;
@@ -56,6 +57,8 @@ class RelatorioController
     {
         $filtros = $this->filtrosVendas();
         $appUrl  = $_ENV['APP_URL'] ?? '';
+        $config  = (new Configuracao())->getAllWithDefaults();
+
         extract([
             'filtros'         => $filtros,
             'resumo'          => $this->fetchResumoVendas($this->whereVendas($filtros), $this->paramsVendas($filtros)),
@@ -63,6 +66,7 @@ class RelatorioController
             'por_pagamento'   => $this->vendasPorPagamento($filtros),
             'por_funcionario' => $this->vendasPorFuncionario($filtros),
             'appUrl'          => $appUrl,
+            'config'          => $config,
         ]);
         require __DIR__ . '/../../app/Views/relatorios/vendas_pdf.php';
         exit;
@@ -93,11 +97,14 @@ class RelatorioController
     {
         $filtros = $this->filtrosStock();
         $appUrl  = $_ENV['APP_URL'] ?? '';
+        $config  = (new Configuracao())->getAllWithDefaults();
+
         extract([
             'filtros'  => $filtros,
             'resumo'   => $this->resumoStock(),
             'produtos' => $this->dadosStock($filtros),
             'appUrl'   => $appUrl,
+            'config'   => $config,
         ]);
         require __DIR__ . '/../../app/Views/relatorios/stock_pdf.php';
         exit;
@@ -134,6 +141,7 @@ class RelatorioController
         $tipo   = $_GET['tipo'] ?? 'proximos';
         $cat    = $_GET['categoria_id'] ?? '';
         $appUrl = $_ENV['APP_URL'] ?? '';
+        $config = (new Configuracao())->getAllWithDefaults();
 
         extract([
             'prazo'     => $prazo,
@@ -141,6 +149,7 @@ class RelatorioController
             'resumo'    => $this->resumoLotes($prazo),
             'lotes'     => $this->dadosLotes($prazo, $tipo, $cat),
             'appUrl'    => $appUrl,
+            'config'    => $config,
         ]);
         require __DIR__ . '/../../app/Views/relatorios/lotes_vencer_pdf.php';
         exit;
@@ -171,11 +180,14 @@ class RelatorioController
     {
         $filtros = $this->filtrosFuncionarios();
         $appUrl  = $_ENV['APP_URL'] ?? '';
+        $config  = (new Configuracao())->getAllWithDefaults();
+
         extract([
             'filtros'  => $filtros,
             'resumo'   => $this->resumoFuncionarios($filtros),
             'ranking'  => $this->rankingFuncionarios($filtros),
             'appUrl'   => $appUrl,
+            'config'   => $config,
         ]);
         require __DIR__ . '/../../app/Views/relatorios/funcionarios_pdf.php';
         exit;
