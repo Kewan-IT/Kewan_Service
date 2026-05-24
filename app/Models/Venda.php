@@ -199,8 +199,8 @@ class Venda extends BaseModel
                 ]);
 
                 $this->db->prepare("
-                    UPDATE caixa SET total_vendas = total_vendas + :total WHERE id = :id
-                ")->execute(['total' => $cabecalho['total'], 'id' => $caixaId]);
+                    UPDATE caixa SET total_vendas = total_vendas + :total1, total_entradas = total_entradas + :total2 WHERE id = :id
+                ")->execute(['total1' => $cabecalho['total'], 'total2' => $cabecalho['total'], 'id' => $caixaId]);
             }
 
             $this->db->commit();

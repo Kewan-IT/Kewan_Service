@@ -63,6 +63,13 @@ class VendaController
     // ================================================================
     public function create(): void
     {
+        // Verificar caixa aberta
+        $caixaModel = new \App\Models\Caixa();
+        if (!$caixaModel->aberta()) {
+            $_SESSION['flash_erro'] = 'Caixa fechada. Abra a caixa antes de efectuar vendas.';
+            header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/caixa');
+            exit;
+        }
         if (empty($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
@@ -86,6 +93,13 @@ class VendaController
     // ================================================================
     public function store(): void
     {
+        // Verificar caixa aberta
+        $caixaModel = new \App\Models\Caixa();
+        if (!$caixaModel->aberta()) {
+            $_SESSION['flash_erro'] = 'Caixa fechada. Abra a caixa antes de efectuar vendas.';
+            header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/caixa');
+            exit;
+        }
         $this->verificarCsrf();
 
         $itens = json_decode($_POST['itens_json'] ?? '[]', true);

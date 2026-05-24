@@ -142,3 +142,10 @@ $router->get('/fornecedores/{id}',         ['FornecedorController', 'show']);
 $router->get('/fornecedores/{id}/editar',  ['FornecedorController', 'edit']);
 $router->post('/fornecedores/{id}/editar', ['FornecedorController', 'update']);
 $router->post('/fornecedores/{id}/toggle', ['FornecedorController', 'toggle']);
+
+
+$router->get('/caixa',              ['CaixaController', 'index']);
+$router->post('/caixa/abrir',       ['CaixaController', 'abrir']);
+$router->post('/caixa/fechar',      ['CaixaController', 'fechar']);
+$router->post('/caixa/movimento',   ['CaixaController', 'movimento']);
+$router->get('/caixa/{id}',         ['CaixaController', 'show']);
