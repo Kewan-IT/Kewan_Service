@@ -51,12 +51,17 @@
     .kf-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
 
     .sidebar-brand {
-      padding: 20px 18px 16px;
+      padding: 15px 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
       border-bottom: 1px solid rgba(255,255,255,.07);
       flex-shrink: 0;
+    }
+
+    .sidebar-brand img {
+      max-width: 100%;
+      height: auto;
     }
 
     .sidebar-brand-icon {
@@ -345,11 +350,7 @@
 
   <!-- Marca -->
   <div class="sidebar-brand">
-    <div class="sidebar-brand-icon"><i class="bi bi-capsule-pill"></i></div>
-    <div class="sidebar-brand-text">
-      <h2>KewanFarma</h2>
-      <span>Sistema de Gestão</span>
-    </div>
+    <img src="<?= $_ENV['APP_URL'] ?? '' ?>/storage/uploads/logos/logo_menu.png" alt="Logo KewanFarma" style="max-width: 180px; height: auto; display: block;">
   </div>
 
   <!-- Utilizador -->

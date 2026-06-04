@@ -21,7 +21,8 @@ class CaixaController
     public function index(): void
     {
         $caixaAberta  = $this->model->aberta();
-        $historico    = $this->model->historico(1, 10);
+        $page         = max(1, (int)($_GET['page'] ?? 1));
+        $historico    = $this->model->historico($page, 20);
         $stats        = $this->model->estatisticasHoje();
 
         $resumo = null;

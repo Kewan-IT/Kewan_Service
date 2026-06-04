@@ -4,6 +4,7 @@ namespace App\Controllers;
  
 use App\Models\Compra;
 use App\Models\Produto;
+use App\Models\Categoria;
 use App\Models\Configuracao;
 use App\Middleware\AuthMiddleware;
 use Core\View;
@@ -12,12 +13,14 @@ class CompraController
 {
     private Compra  $model;
     private Produto $produtoModel;
+    private Categoria $categoriaModel;
  
     public function __construct()
     {
         AuthMiddleware::check();
-        $this->model        = new Compra();
-        $this->produtoModel = new Produto();
+        $this->model          = new Compra();
+        $this->produtoModel   = new Produto();
+        $this->categoriaModel = new Categoria();
     }
  
     // ================================================================
@@ -58,10 +61,11 @@ class CompraController
             'activePage'   => 'compras',
             'breadcrumb'   => ['Compras' => '/compras', 'Nova' => null],
             'fornecedores' => $this->model->fornecedores(),
+            'categorias'   => $this->categoriaModel->arvore(),
             'csrf_token'   => $this->csrfGerar(),
         ]);
     }
- 
+
     // ================================================================
     // POST /compras/nova — Guardar compra
     // ================================================================

@@ -1,6 +1,7 @@
 <?php
 /** @var \Core\Router $router */
 $router->get('/api/produtos/pesquisar', ['ApiController', 'pesquisarProdutos']);
+$router->post('/api/produtos/inline', ['ApiController', 'criarProdutoCompra']);
 $router->get('/api/clientes/pesquisar', ['ApiController', 'pesquisarClientes']);
 $router->get('/api/estoque/alertas',    ['ApiController', 'alertasEstoque']);
 $router->get('/api/dashboard/resumo',   ['ApiController', 'resumoDashboard']);

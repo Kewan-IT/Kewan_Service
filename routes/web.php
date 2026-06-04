@@ -43,6 +43,7 @@ $router->post('/vendas/nova/carrinho', ['VendaController', 'salvarCarrinho']);
 $router->get('/vendas/nova',           ['VendaController', 'create']);
 $router->post('/vendas/nova',          ['VendaController', 'store']);
 $router->get('/vendas',                ['VendaController', 'index']);
+$router->get('/vendas/{id}',           ['VendaController', 'show']);
 $router->get('/vendas/{id}/detalhe',   ['VendaController', 'show']);
 $router->get('/vendas/{id}/talao',     ['VendaController', 'talao']);
 $router->post('/vendas/{id}/cancelar', ['VendaController', 'cancelar']);
@@ -85,8 +86,11 @@ $router->get('/relatorios/funcionarios/pdf',   ['RelatorioController', 'funciona
 $router->get('/relatorios/stock/pdf',          ['RelatorioController', 'stockPdf']);
 
 // ── Configurações ────────────────────────────────────────────────
-$router->get('/configuracoes',  ['ConfiguracaoController', 'index']);
-$router->post('/configuracoes', ['ConfiguracaoController', 'update']);
+$router->get('/configuracoes',             ['ConfiguracaoController', 'index']);
+$router->post('/configuracoes',            ['ConfiguracaoController', 'update']);
+$router->post('/configuracoes/fazer-backup',    ['ConfiguracaoController', 'fazerBackup']);
+$router->post('/configuracoes/deletar-backup',  ['ConfiguracaoController', 'deletarBackup']);
+$router->get('/configuracoes/download-backup',  ['ConfiguracaoController', 'downloadBackup']);
 
 // ── API AJAX ─────────────────────────────────────────────────────
 $router->get('/api/produtos/pesquisar',  ['ApiController', 'pesquisarProdutos']);

@@ -1,4 +1,9 @@
-<?php $appUrl = $_ENV['APP_URL'] ?? ''; ?>
+<?php
+$appUrl = $_ENV['APP_URL'] ?? '';
+$csrf_token = $csrf_token ?? '';
+$fornecedores = $fornecedores ?? [];
+$categorias = $categorias ?? [];
+?>
 
 <style>
 .produto-resultado { cursor:pointer; padding:10px 14px; border-bottom:1px solid #f0f0f0; transition:background .1s; }
@@ -28,9 +33,14 @@
     <!-- Pesquisa de produto -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body py-3">
-        <label class="form-label fw-semibold mb-2">
-          <i class="bi bi-search me-1 text-success"></i>Adicionar Produto
-        </label>
+        <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
+          <label class="form-label fw-semibold mb-0">
+            <i class="bi bi-search me-1 text-success"></i>Adicionar Produto
+          </label>
+          <button type="button" id="btn-toggle-novo-produto" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-plus-circle me-1"></i>Novo produto
+          </button>
+        </div>
         <div class="input-group">
           <input type="text" id="pesquisa-produto" class="form-control"
                  placeholder="Pesquisar por nome ou código de barras..."
@@ -38,6 +48,61 @@
         </div>
         <div id="resultados-produtos" class="border rounded mt-1 bg-white d-none"
              style="max-height:260px;overflow-y:auto;position:relative;z-index:100"></div>
+
+        <div id="form-novo-produto" class="d-none mt-3 border rounded p-3 bg-light-subtle">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0">Criar produto rapidamente</h6>
+            <button type="button" id="btn-fechar-novo-produto" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="row g-2">
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Nome</label>
+              <input type="text" id="novo-produto-nome" class="form-control form-control-sm" placeholder="Ex.: Amoxicilina 500mg">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Categoria</label>
+              <select id="novo-produto-categoria" class="form-select form-select-sm">
+                <option value="">Seleccione uma categoria</option>
+                <?php foreach ($categorias as $categoria): ?>
+                <option value="<?= (int)$categoria['id'] ?>">
+                  <?= htmlspecialchars($categoria['pai_nome'] ? $categoria['pai_nome'] . ' > ' . $categoria['nome'] : $categoria['nome']) ?>
+                </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small mb-1">Código de barras</label>
+              <input type="text" id="novo-produto-codigo" class="form-control form-control-sm" placeholder="Opcional">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small mb-1">Unidade</label>
+              <input type="text" id="novo-produto-unidade" class="form-control form-control-sm" value="unidade">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small mb-1">Stock mínimo</label>
+              <input type="number" id="novo-produto-min" class="form-control form-control-sm" min="0" value="5">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Preço de compra</label>
+              <input type="number" id="novo-produto-compra" class="form-control form-control-sm" min="0" step="0.01" value="0">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Preço de venda</label>
+              <input type="number" id="novo-produto-venda" class="form-control form-control-sm" min="0" step="0.01" value="0">
+            </div>
+            <div class="col-12">
+              <label class="form-label small mb-1">Observações</label>
+              <textarea id="novo-produto-descricao" class="form-control form-control-sm" rows="2" placeholder="Opcional"></textarea>
+            </div>
+          </div>
+          <div class="d-flex justify-content-end mt-3">
+            <button type="button" id="btn-salvar-novo-produto" class="btn btn-sm btn-success">
+              <i class="bi bi-check-circle me-1"></i>Salvar e adicionar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -184,6 +249,19 @@ document.getElementById('pesquisa-produto').addEventListener('input', function (
   timer = setTimeout(() => pesquisarProduto(q), 300);
 });
 
+document.getElementById('btn-toggle-novo-produto').addEventListener('click', function () {
+  document.getElementById('form-novo-produto').classList.toggle('d-none');
+  if (!document.getElementById('form-novo-produto').classList.contains('d-none')) {
+    document.getElementById('novo-produto-nome').focus();
+  }
+});
+
+document.getElementById('btn-fechar-novo-produto').addEventListener('click', function () {
+  document.getElementById('form-novo-produto').classList.add('d-none');
+});
+
+document.getElementById('btn-salvar-novo-produto').addEventListener('click', salvarNovoProduto);
+
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#pesquisa-produto') && !e.target.closest('#resultados-produtos')) {
     fecharResultados();
@@ -241,7 +319,7 @@ function adicionarItem(produto) {
     itens[idx].quantidade++;
     recalcularItem(idx);
   } else {
-    const precoCompra = parseFloat(produto.preco_compra || 0);
+    const precoCompra = parseFloat(produto.preco_compra || produto.preco_venda || 0);
     itens.push({
       produto_id:     produto.id,
       nome:           produto.nome,
@@ -253,6 +331,75 @@ function adicionarItem(produto) {
     });
   }
   renderItens();
+}
+
+async function salvarNovoProduto() {
+  const nome = document.getElementById('novo-produto-nome').value.trim();
+  const categoriaId = document.getElementById('novo-produto-categoria').value;
+  const codigo = document.getElementById('novo-produto-codigo').value.trim();
+  const unidade = document.getElementById('novo-produto-unidade').value.trim() || 'unidade';
+  const estoqueMin = document.getElementById('novo-produto-min').value;
+  const precoCompra = document.getElementById('novo-produto-compra').value;
+  const precoVenda = document.getElementById('novo-produto-venda').value;
+  const descricao = document.getElementById('novo-produto-descricao').value.trim();
+
+  if (!nome || !categoriaId) {
+    alert('Preencha o nome e a categoria do produto.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-salvar-novo-produto');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+  try {
+    const res = await fetch(`${APP_URL}/api/produtos/inline`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value,
+      },
+      body: JSON.stringify({
+        nome,
+        categoria_id: parseInt(categoriaId, 10),
+        codigo_barras: codigo || null,
+        unidade_medida: unidade,
+        estoque_min: parseInt(estoqueMin, 10) || 0,
+        preco_compra: precoCompra,
+        preco_venda: precoVenda,
+        principio_ativo: null,
+        descricao,
+      }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      const msg = json.errors ? Object.values(json.errors).join('\n') : (json.erro || 'Erro ao salvar produto.');
+      alert(msg);
+      return;
+    }
+
+    const produto = json.produto;
+    produto.estoque_actual = produto.estoque_actual ?? 0;
+    _produtosCache[produto.id] = produto;
+    adicionarItem(produto);
+    document.getElementById('form-novo-produto').classList.add('d-none');
+    document.getElementById('novo-produto-nome').value = '';
+    document.getElementById('novo-produto-categoria').value = '';
+    document.getElementById('novo-produto-codigo').value = '';
+    document.getElementById('novo-produto-unidade').value = 'unidade';
+    document.getElementById('novo-produto-min').value = '5';
+    document.getElementById('novo-produto-compra').value = '0';
+    document.getElementById('novo-produto-venda').value = '0';
+    document.getElementById('novo-produto-descricao').value = '';
+  } catch (e) {
+    console.error(e);
+    alert('Não foi possível salvar o produto agora.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
 }
 
 function recalcularItem(idx) {

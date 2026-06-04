@@ -271,6 +271,20 @@ $tiposMov = [
         <?php endforeach; ?>
         </tbody>
       </table>
+      <?php if ($historico['last_page'] > 1): ?>
+      <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top" style="font-size:.8rem">
+        <div class="text-muted"><?= $historico['total'] ?> sessões registadas</div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <?php for ($pg = 1; $pg <= $historico['last_page']; $pg++): ?>
+            <li class="page-item <?= $pg === $historico['current_page'] ? 'active':'' ?>">
+              <a class="page-link" href="?page=<?= $pg ?>"><?= $pg ?></a>
+            </li>
+            <?php endfor; ?>
+          </ul>
+        </nav>
+      </div>
+      <?php endif; ?>
     </div>
     <?php endif; ?>
   </div>

@@ -323,8 +323,9 @@ class Venda extends BaseModel
             $params['forma_pagamento'] = $filtros['forma_pagamento'];
         }
         if (!empty($filtros['busca'])) {
-            $sql .= ' AND (v.numero_venda LIKE :busca OR c.nome LIKE :busca)';
-            $params['busca'] = '%' . $filtros['busca'] . '%';
+            $sql .= ' AND (v.numero_venda LIKE :busca_numero OR c.nome LIKE :busca_cliente)';
+            $params['busca_numero'] = '%' . $filtros['busca'] . '%';
+            $params['busca_cliente'] = '%' . $filtros['busca'] . '%';
         }
 
         $sql .= ' GROUP BY v.id ORDER BY v.criado_em DESC';
