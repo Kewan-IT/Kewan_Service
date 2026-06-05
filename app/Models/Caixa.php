@@ -198,6 +198,21 @@ class Caixa extends BaseModel
     // ----------------------------------------------------------------
     // Detalhe de uma sessão
     // ----------------------------------------------------------------
+    // Calcular saldo actual (saldo_inicial + entradas - saidas)
+    // ----------------------------------------------------------------
+    public function calcularSaldoAtual(int $caixaId): float
+    {
+        $stmt = $this->db->prepare("
+            SELECT (saldo_inicial + total_entradas - total_saidas) AS saldo_actual
+            FROM caixa
+            WHERE id = :id
+        ");
+        $stmt->execute(['id' => $caixaId]);
+        $resultado = $stmt->fetch();
+        return $resultado ? (float) $resultado['saldo_actual'] : 0.0;
+    }
+
+    // ----------------------------------------------------------------
     public function findCompleto(int $id): ?array
     {
         $stmt = $this->db->prepare("

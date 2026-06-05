@@ -42,17 +42,6 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
   </div>
 </div>
 
-<?php if (!empty($flash_sucesso)): ?>
-<div class="alert alert-success alert-dismissible fade show mb-3">
-  <?= htmlspecialchars($flash_sucesso) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if (!empty($flash_erro)): ?>
-<div class="alert alert-danger alert-dismissible fade show mb-3">
-  <?= htmlspecialchars($flash_erro) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-
 <div class="row g-4">
   <!-- Talão -->
   <div class="col-12 col-md-5">

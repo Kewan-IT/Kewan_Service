@@ -144,6 +144,16 @@ class CaixaController
             exit;
         }
 
+        // Validação: Não permitir saída/sangria se o saldo for 0 ou negativo
+        if (in_array($tipo, ['saida', 'sangria'])) {
+            $saldoAtual = $this->model->calcularSaldoAtual($caixaAberta['id']);
+            if ($saldoAtual <= 0) {
+                $_SESSION['flash_erro'] = 'O caixa está sem fundo para este movimento.';
+                header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/caixa');
+                exit;
+            }
+        }
+
         $this->model->adicionarMovimento(
             $caixaAberta['id'], $tipo, $valor, $descricao, (int) $_SESSION['usuario_id']
         );

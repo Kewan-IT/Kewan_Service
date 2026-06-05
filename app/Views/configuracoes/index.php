@@ -12,18 +12,6 @@
   </a>
 </div>
 
-<?php if (!empty($flash_sucesso)): ?>
-<div class="alert alert-success py-2 px-3 mb-3">
-  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
-</div>
-<?php endif; ?>
-
-<?php if (!empty($flash_erro)): ?>
-<div class="alert alert-danger py-2 px-3 mb-3">
-  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
-</div>
-<?php endif; ?>
-
 <form method="POST" enctype="multipart/form-data" action="<?= $APP ?>/configuracoes">
   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
 

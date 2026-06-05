@@ -521,22 +521,6 @@
 <main class="kf-main">
   <div class="kf-content">
 
-    <?php if (!empty($flash_sucesso)): ?>
-      <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
-        <i class="bi bi-check-circle-fill"></i>
-        <span><?= htmlspecialchars($flash_sucesso) ?></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    <?php endif; ?>
-
-    <?php if (!empty($flash_erro)): ?>
-      <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
-        <i class="bi bi-exclamation-triangle-fill"></i>
-        <span><?= htmlspecialchars($flash_erro) ?></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    <?php endif; ?>
-
     <?= $content ?>
   </div>
 </main>
@@ -554,7 +538,21 @@
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- Componente de Toast -->
+<?php include __DIR__ . '/../components/toast.php'; ?>
+
 <script>
+// Exibir flash messages como toast
+document.addEventListener('DOMContentLoaded', function() {
+  <?php if (!empty($flash_sucesso)): ?>
+  Toast.success(<?= json_encode($flash_sucesso) ?>, 'Sucesso');
+  <?php endif; ?>
+  
+  <?php if (!empty($flash_erro)): ?>
+  Toast.error(<?= json_encode($flash_erro) ?>, 'Erro');
+  <?php endif; ?>
+});
+
 // Toggle da sidebar (mobile)
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
