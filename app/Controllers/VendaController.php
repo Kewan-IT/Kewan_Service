@@ -199,9 +199,9 @@ class VendaController
     {
         $venda = $this->model->findCompleto((int)$id);
         if (!$venda) {
-            $_SESSION['flash_erro'] = 'Venda não encontrada ou já foi removida.';
-            header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/vendas');
-            exit;
+            http_response_code(404);
+            require dirname(__DIR__) . '/Views/errors/404.php';
+            return;
         }
 
         if (empty($_SESSION['csrf_token'])) {

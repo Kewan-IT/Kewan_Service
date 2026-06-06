@@ -82,6 +82,20 @@ $statusLabels = [
   </div>
 </div>
  
+<!-- Flash messages -->
+<?php if ($flash_sucesso ?? null): ?>
+<div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+<?php if ($flash_erro ?? null): ?>
+<div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+ 
 <!-- Tabela -->
 <div class="card border-0 shadow-sm">
   <div class="card-body p-0">

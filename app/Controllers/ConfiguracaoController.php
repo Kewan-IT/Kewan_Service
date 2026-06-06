@@ -5,21 +5,18 @@ namespace App\Controllers;
 use App\Middleware\AuthMiddleware;
 use App\Models\Configuracao;
 use App\Services\UploadService;
-use App\Services\BackupService;
 use Core\View;
 
 class ConfiguracaoController
 {
     private Configuracao $model;
     private UploadService $uploadService;
-    private BackupService $backupService;
 
     public function __construct()
     {
         AuthMiddleware::requirePerfil('admin');
         $this->model = new Configuracao();
         $this->uploadService = new UploadService();
-        $this->backupService = new BackupService();
     }
 
     public function index(): void
@@ -29,14 +26,12 @@ class ConfiguracaoController
         }
 
         $config = $this->defaults($this->model->getAll());
-        $backups = $this->backupService->listarBackups();
 
         View::render('configuracoes.index', [
             'titulo' => 'Configurações',
             'activePage' => 'configuracoes',
             'breadcrumb' => ['Configurações' => null],
             'config' => $config,
-            'backups' => $backups,
             'csrf_token' => $_SESSION['csrf_token'],
             'flash_sucesso' => $_SESSION['flash_sucesso'] ?? null,
             'flash_erro' => $_SESSION['flash_erro'] ?? null,
@@ -77,61 +72,6 @@ class ConfiguracaoController
 
         header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/configuracoes');
         exit;
-    }
-
-    public function fazerBackup(): void
-    {
-        $this->verificarCsrf();
-
-        $resultado = $this->backupService->fazerBackup();
-
-        if ($resultado['sucesso']) {
-            $_SESSION['flash_sucesso'] = $resultado['mensagem'];
-        } else {
-            $_SESSION['flash_erro'] = $resultado['mensagem'];
-        }
-
-        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/configuracoes');
-        exit;
-    }
-
-    public function deletarBackup(): void
-    {
-        $this->verificarCsrf();
-
-        $arquivo = $_POST['arquivo'] ?? '';
-
-        if (empty($arquivo)) {
-            $_SESSION['flash_erro'] = 'Arquivo não especificado.';
-            header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/configuracoes');
-            exit;
-        }
-
-        $resultado = $this->backupService->deletarBackup($arquivo);
-
-        if ($resultado['sucesso']) {
-            $_SESSION['flash_sucesso'] = $resultado['mensagem'];
-        } else {
-            $_SESSION['flash_erro'] = $resultado['mensagem'];
-        }
-
-        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/configuracoes');
-        exit;
-    }
-
-    public function downloadBackup(): void
-    {
-        $arquivo = $_GET['arquivo'] ?? '';
-
-        if (empty($arquivo)) {
-            http_response_code(404);
-            exit('Arquivo não especificado.');
-        }
-
-        if (!$this->backupService->downloadBackup($arquivo)) {
-            http_response_code(404);
-            exit('Arquivo não encontrado.');
-        }
     }
 
     private function processarLogo(): ?string

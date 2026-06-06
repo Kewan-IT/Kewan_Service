@@ -129,15 +129,24 @@
             $cls   = '';
             $badge = ['label'=>'Normal',      'cls'=>'badge-success'];
         }
-        $valorStock = $p['estoque_actual'] * $p['preco_compra'];
+        $fator      = max(1, (float)($p['fator_conversao'] ?? 1));
+        $uVenda     = $p['unidade_venda'] ?? 'unidade';
+        $custoUnit  = $fator > 0 ? $p['preco_compra'] / $fator : $p['preco_compra'];
+        $lucroUnit  = $p['preco_venda'] - $custoUnit;
+        $margem     = $p['preco_venda'] > 0 ? round($lucroUnit / $p['preco_venda'] * 100, 1) : 0;
+        $valorStock = $p['estoque_actual'] * $custoUnit;
       ?>
       <tr class="<?= $cls ?>">
         <td style="font-weight:600"><?= htmlspecialchars($p['nome']) ?></td>
         <td><?= htmlspecialchars($p['categoria_nome']) ?></td>
-        <td class="text-center" style="font-weight:700"><?= $p['estoque_actual'] ?></td>
+        <td class="text-center" style="font-weight:700"><?= $p['estoque_actual'] ?> <small><?= htmlspecialchars($uVenda) ?></small></td>
         <td class="text-center"><?= $p['estoque_min'] ?></td>
-        <td class="text-right"><?= number_format($p['preco_compra'],2,',','.') ?></td>
+        <td class="text-right">
+          <?= number_format($custoUnit,2,',','.') ?>
+          <?php if ($fator > 1): ?><br><small style="color:#9ca3af"><?= number_format($p['preco_compra'],2,',','.') ?>/<?= htmlspecialchars($p['unidade_compra'] ?? 'cx') ?></small><?php endif; ?>
+        </td>
         <td class="text-right"><?= number_format($p['preco_venda'],2,',','.') ?></td>
+        <td class="text-right" style="font-weight:600;color:<?= $margem >= 0 ? '#1a7f5a' : '#dc2626' ?>"><?= $margem ?>%</td>
         <td class="text-right" style="font-weight:600;color:#1a7f5a"><?= number_format($valorStock,2,',','.') ?></td>
         <td class="text-center"><span class="badge <?= $badge['cls'] ?>"><?= $badge['label'] ?></span></td>
       </tr>
@@ -145,7 +154,7 @@
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="6">TOTAL INVENTÁRIO</td>
+        <td colspan="7">TOTAL INVENTÁRIO</td>
         <td class="text-right" style="color:#1a7f5a"><?= number_format($resumo['valor_total'],2,',','.') ?> MZN</td>
         <td></td>
       </tr>

@@ -284,28 +284,35 @@ class ProdutoController
     // ----------------------------------------------------------------
     private function validar(array $post, int $excluirId = 0): array
     {
+        $fator = (float)str_replace(',', '.', $post['fator_conversao'] ?? '1');
+        if ($fator <= 0) $fator = 1;
+
         $dados = [
-            'nome'            => trim($post['nome']            ?? ''),
-            'codigo_barras'   => trim($post['codigo_barras']   ?? '') ?: null,
-            'principio_ativo' => trim($post['principio_ativo'] ?? '') ?: null,
-            'descricao'       => trim($post['descricao']       ?? '') ?: null,
-            'categoria_id'    => (int)($post['categoria_id']   ?? 0),
-            'fornecedor_id'   => (int)($post['fornecedor_id']  ?? 0) ?: null,
-            'unidade_medida'  => trim($post['unidade_medida']  ?? 'unidade'),
-            'preco_compra'    => (float)str_replace(',', '.', $post['preco_compra'] ?? '0'),
-            'preco_venda'     => (float)str_replace(',', '.', $post['preco_venda']  ?? '0'),
-            'estoque_min'     => (int)($post['estoque_min']    ?? 5),
-            'requer_receita'  => isset($post['requer_receita']) ? 1 : 0,
-            'controlado'      => isset($post['controlado'])     ? 1 : 0,
-            'ativo'           => isset($post['ativo'])          ? 1 : 0,
+            'nome'             => trim($post['nome']            ?? ''),
+            'codigo_barras'    => trim($post['codigo_barras']   ?? '') ?: null,
+            'principio_ativo'  => trim($post['principio_ativo'] ?? '') ?: null,
+            'descricao'        => trim($post['descricao']       ?? '') ?: null,
+            'categoria_id'     => (int)($post['categoria_id']   ?? 0),
+            'fornecedor_id'    => (int)($post['fornecedor_id']  ?? 0) ?: null,
+            'unidade_medida'   => trim($post['unidade_medida']  ?? 'unidade'),
+            'unidade_compra'   => trim($post['unidade_compra']  ?? 'caixa'),
+            'unidade_venda'    => trim($post['unidade_venda']   ?? 'unidade'),
+            'fator_conversao'  => $fator,
+            'preco_compra'     => (float)str_replace(',', '.', $post['preco_compra'] ?? '0'),
+            'preco_venda'      => (float)str_replace(',', '.', $post['preco_venda']  ?? '0'),
+            'estoque_min'      => (int)($post['estoque_min']    ?? 5),
+            'requer_receita'   => isset($post['requer_receita']) ? 1 : 0,
+            'controlado'       => isset($post['controlado'])     ? 1 : 0,
+            'ativo'            => isset($post['ativo'])          ? 1 : 0,
         ];
 
         $erros = [];
-        if (strlen($dados['nome']) < 2)    $erros['nome']         = 'Nome obrigatório (mínimo 2 caracteres).';
-        if ($dados['categoria_id'] === 0)  $erros['categoria_id'] = 'Seleccione a categoria.';
-        if ($dados['preco_venda'] <= 0)    $erros['preco_venda']  = 'Preço de venda deve ser maior que zero.';
-        if ($dados['preco_compra'] < 0)    $erros['preco_compra'] = 'Preço de compra inválido.';
-        if ($dados['estoque_min'] < 0)     $erros['estoque_min']  = 'Stock mínimo inválido.';
+        if (strlen($dados['nome']) < 2)       $erros['nome']            = 'Nome obrigatório (mínimo 2 caracteres).';
+        if ($dados['categoria_id'] === 0)     $erros['categoria_id']    = 'Seleccione a categoria.';
+        if ($dados['preco_venda'] <= 0)       $erros['preco_venda']     = 'Preço de venda deve ser maior que zero.';
+        if ($dados['preco_compra'] < 0)       $erros['preco_compra']    = 'Preço de compra inválido.';
+        if ($dados['estoque_min'] < 0)        $erros['estoque_min']     = 'Stock mínimo inválido.';
+        if ($dados['fator_conversao'] <= 0)   $erros['fator_conversao'] = 'Factor de conversão deve ser maior que zero.';
 
         return [$dados, $erros];
     }

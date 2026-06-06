@@ -113,6 +113,51 @@ function selP(array $p, string $k, $v): string { return ($p[$k] ?? '') == $v ? '
           </div>
         </div>
 
+        <!-- Conversão compra / venda -->
+        <div class="mt-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+          <div class="form-section-title mb-2" style="border:none;padding:0">
+            <i class="bi bi-arrow-left-right"></i> Unidades de Compra e Venda
+          </div>
+          <p class="text-muted small mb-2">
+            Define como o produto é comprado ao fornecedor e como é vendido ao cliente.<br>
+            <strong>Exemplo:</strong> Compra-se <em>1 Caixa</em> com <em>10 Cartelas</em> — o stock fica em cartelas.
+          </p>
+          <div class="row g-3">
+            <div class="col-sm-4">
+              <label class="form-label small required">Unidade de compra</label>
+              <select name="unidade_compra" id="unidade_compra" class="form-select form-select-sm" onchange="actualizarExemplo()">
+                <?php foreach (['caixa','frasco','saco','fardo','kg','litro','unidade','blister','strip','pote'] as $u): ?>
+                <option value="<?= $u ?>" <?= selP($p,'unidade_compra',$u) ?>><?= ucfirst($u) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <div class="form-text">Como compras ao fornecedor</div>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label small required">Unidade de venda</label>
+              <select name="unidade_venda" id="unidade_venda" class="form-select form-select-sm" onchange="actualizarExemplo()">
+                <?php foreach (['unidade','cartela','comprimido','cápsula','ml','g','frasco','ampola','saqueta','dose'] as $u): ?>
+                <option value="<?= $u ?>" <?= selP($p,'unidade_venda',$u) ?>><?= ucfirst($u) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <div class="form-text">Como vendes ao cliente</div>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label small required">Factor de conversão</label>
+              <input type="number" name="fator_conversao" id="fator_conversao"
+                     class="form-control form-control-sm <?= isset($e['fator_conversao']) ? 'is-invalid':'' ?>"
+                     value="<?= oldP($p,'fator_conversao','1') ?>"
+                     min="1" step="1" oninput="actualizarExemplo()">
+              <div class="form-text">Qtd. de venda por unidade de compra</div>
+              <?php if (isset($e['fator_conversao'])): ?><div class="invalid-feedback"><?= $e['fator_conversao'] ?></div><?php endif; ?>
+            </div>
+          </div>
+          <!-- Exemplo dinâmico -->
+          <div class="mt-2 p-2 rounded bg-white border" id="exemplo-conversao" style="font-size:13px;color:#166534;">
+            <i class="bi bi-info-circle me-1"></i>
+            <span id="texto-exemplo">1 Caixa = 1 unidade(s) em stock</span>
+          </div>
+        </div>
+
         <!-- Checkboxes -->
         <div class="d-flex gap-4 mt-3 flex-wrap">
           <div class="form-check form-switch">
@@ -144,14 +189,14 @@ function selP(array $p, string $k, $v): string { return ($p[$k] ?? '') == $v ? '
         <div class="form-section-title"><i class="bi bi-currency-exchange"></i> Preços e Stock</div>
         <div class="row g-3">
           <div class="col-sm-4">
-            <label class="form-label small">Preço de compra (MZN)</label>
+            <label class="form-label small">Preço de compra (MZN) <span class="text-muted" style="font-size:10px" id="label-unid-compra">por caixa</span></label>
             <input type="number" name="preco_compra" id="precoCompra"
                    class="form-control form-control-sm"
                    value="<?= oldP($p,'preco_compra','0') ?>"
                    min="0" step="0.01" oninput="calcMargem()">
           </div>
           <div class="col-sm-4">
-            <label class="form-label small required">Preço de venda (MZN)</label>
+            <label class="form-label small required">Preço de venda (MZN) <span class="text-muted" style="font-size:10px" id="label-unid-venda">por unidade</span></label>
             <input type="number" name="preco_venda" id="precoVenda"
                    class="form-control form-control-sm <?= isset($e['preco_venda']) ? 'is-invalid':'' ?>"
                    value="<?= oldP($p,'preco_venda','0') ?>"
@@ -162,6 +207,10 @@ function selP(array $p, string $k, $v): string { return ($p[$k] ?? '') == $v ? '
             <label class="form-label small">Margem de lucro</label>
             <div id="margemDisplay" class="margem-display bg-light border text-center fw-bold mt-1">—</div>
           </div>
+        </div>
+        <!-- Detalhe do lucro por unidade -->
+        <div id="lucro-detalhe" class="mt-2 p-2 rounded d-none" style="background:#f0fdf4;border:1px solid #bbf7d0;"></div>
+        <div class="row g-3 mt-0">
           <div class="col-sm-4">
             <label class="form-label small">Stock mínimo (alerta)</label>
             <input type="number" name="estoque_min" class="form-control form-control-sm"
@@ -254,17 +303,74 @@ function selP(array $p, string $k, $v): string { return ($p[$k] ?? '') == $v ? '
 </form>
 
 <script>
+function actualizarExemplo() {
+  const compra = document.getElementById('unidade_compra')?.value || 'caixa';
+  const venda  = document.getElementById('unidade_venda')?.value  || 'unidade';
+  const fator  = parseInt(document.getElementById('fator_conversao')?.value) || 1;
+  const texto  = document.getElementById('texto-exemplo');
+  if (texto) {
+    texto.textContent = `1 ${ucFirst(compra)} = ${fator} ${venda}(s) em stock`;
+  }
+  // Actualizar labels dos preços
+  const lbCompra = document.getElementById('label-unid-compra');
+  const lbVenda  = document.getElementById('label-unid-venda');
+  if (lbCompra) lbCompra.textContent = `por ${compra}`;
+  if (lbVenda)  lbVenda.textContent  = `por ${venda}`;
+  // Recalcular margem com novo factor
+  calcMargem();
+}
+
+function ucFirst(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+actualizarExemplo();
+
 function calcMargem() {
-  const compra = parseFloat(document.getElementById('precoCompra').value) || 0;
-  const venda  = parseFloat(document.getElementById('precoVenda').value)  || 0;
-  const el     = document.getElementById('margemDisplay');
-  if (compra > 0 && venda > 0) {
-    const m = ((venda - compra) / compra * 100).toFixed(1);
-    el.textContent = m + '%';
-    el.className   = 'margem-display fw-bold text-center mt-1 ' + (m >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger');
+  const compraCaixa = parseFloat(document.getElementById('precoCompra').value)    || 0;
+  const vendaUnit   = parseFloat(document.getElementById('precoVenda').value)     || 0;
+  const fator       = parseFloat(document.getElementById('fator_conversao').value) || 1;
+  const el          = document.getElementById('margemDisplay');
+  const elDetalhe   = document.getElementById('lucro-detalhe');
+
+  if (compraCaixa > 0 && vendaUnit > 0 && fator > 0) {
+    // Custo por unidade de venda (ex: custo por cartela)
+    const custoUnit  = compraCaixa / fator;
+    // Lucro por unidade de venda
+    const lucroUnit  = vendaUnit - custoUnit;
+    // Margem sobre o preço de venda (%)
+    const margem     = (lucroUnit / vendaUnit * 100).toFixed(1);
+    // Lucro por caixa/embalagem completa
+    const lucroCaixa = (lucroUnit * fator).toFixed(2);
+
+    const positivo = lucroUnit >= 0;
+    el.textContent = margem + '%';
+    el.className   = 'margem-display fw-bold text-center mt-1 ' + (positivo ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger');
+
+    if (elDetalhe) {
+      const uCompra = document.getElementById('unidade_compra')?.value || 'caixa';
+      const uVenda  = document.getElementById('unidade_venda')?.value  || 'unidade';
+      elDetalhe.innerHTML = `
+        <div class="d-flex flex-wrap gap-3 justify-content-center" style="font-size:12px">
+          <span>
+            <span class="text-muted">Custo/${uVenda}:</span>
+            <strong class="text-danger">MT ${custoUnit.toFixed(2)}</strong>
+          </span>
+          <span>
+            <span class="text-muted">Lucro/${uVenda}:</span>
+            <strong class="${positivo ? 'text-success' : 'text-danger'}">MT ${lucroUnit.toFixed(2)}</strong>
+          </span>
+          <span>
+            <span class="text-muted">Lucro/${uCompra}:</span>
+            <strong class="${positivo ? 'text-success' : 'text-danger'}">MT ${lucroCaixa}</strong>
+          </span>
+        </div>`;
+      elDetalhe.classList.remove('d-none');
+    }
   } else {
     el.textContent = '—';
     el.className   = 'margem-display bg-light border text-center fw-bold mt-1';
+    if (elDetalhe) elDetalhe.classList.add('d-none');
   }
 }
 calcMargem();

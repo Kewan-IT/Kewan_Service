@@ -28,72 +28,6 @@ class ApiController
         View::json($produtos);
     }
 
-    // POST /api/produtos/inline
-    public function criarProdutoCompra(): void
-    {
-        $this->verificarCsrf();
-
-        $payload = json_decode(file_get_contents('php://input') ?: '[]', true);
-        if (!is_array($payload)) {
-            http_response_code(400);
-            echo json_encode(['erro' => 'Payload inválido.']);
-            exit;
-        }
-
-        $produtoModel = new Produto();
-        $nome = trim((string)($payload['nome'] ?? ''));
-        $categoriaId = (int)($payload['categoria_id'] ?? 0);
-        $codigoBarras = trim((string)($payload['codigo_barras'] ?? '')) ?: null;
-        $unidadeMedida = trim((string)($payload['unidade_medida'] ?? 'unidade')) ?: 'unidade';
-        $precoCompra = (float) str_replace(',', '.', (string)($payload['preco_compra'] ?? '0'));
-        $precoVenda = (float) str_replace(',', '.', (string)($payload['preco_venda'] ?? '0'));
-        $estoqueMin = max(0, (int)($payload['estoque_min'] ?? 5));
-
-        $erros = [];
-        if (mb_strlen($nome) < 2) {
-            $erros['nome'] = 'Nome obrigatório (mínimo 2 caracteres).';
-        }
-        if ($categoriaId <= 0) {
-            $erros['categoria_id'] = 'Selecione uma categoria.';
-        }
-        if ($precoVenda <= 0) {
-            $erros['preco_venda'] = 'Preço de venda deve ser maior que zero.';
-        }
-        if ($precoCompra < 0) {
-            $erros['preco_compra'] = 'Preço de compra inválido.';
-        }
-        if ($codigoBarras !== null && $produtoModel->codigoBarrasExiste($codigoBarras)) {
-            $erros['codigo_barras'] = 'Este código de barras já existe.';
-        }
-
-        if ($erros) {
-            http_response_code(422);
-            echo json_encode(['erro' => 'Dados inválidos.', 'errors' => $erros]);
-            exit;
-        }
-
-        $produtoId = $produtoModel->insert([
-            'nome'           => $nome,
-            'codigo_barras'  => $codigoBarras,
-            'principio_ativo'=> trim((string)($payload['principio_ativo'] ?? '')) ?: null,
-            'descricao'      => trim((string)($payload['descricao'] ?? '')) ?: null,
-            'categoria_id'   => $categoriaId,
-            'fornecedor_id'  => null,
-            'unidade_medida' => $unidadeMedida,
-            'preco_compra'   => $precoCompra,
-            'preco_venda'    => $precoVenda,
-            'estoque_actual' => 0,
-            'estoque_min'    => $estoqueMin,
-            'requer_receita' => 0,
-            'controlado'     => 0,
-            'ativo'          => 1,
-            'imagem_url'     => null,
-        ]);
-
-        $produto = $produtoModel->findById($produtoId);
-        View::json(['success' => true, 'produto' => $produto]);
-    }
-
     // GET /api/clientes/pesquisar?q=…
     public function pesquisarClientes(): void
     {
@@ -116,16 +50,6 @@ class ApiController
             'q3' => '%' . $q . '%',
         ]);
         View::json($stmt->fetchAll());
-    }
-
-    private function verificarCsrf(): void
-    {
-        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
-            http_response_code(403);
-            echo json_encode(['erro' => 'Token inválido.']);
-            exit;
-        }
     }
 
     // GET /api/produtos/{id}/lotes

@@ -51,17 +51,12 @@
     .kf-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
 
     .sidebar-brand {
-      padding: 15px 12px;
+      padding: 20px 18px 16px;
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 10px;
       border-bottom: 1px solid rgba(255,255,255,.07);
       flex-shrink: 0;
-    }
-
-    .sidebar-brand img {
-      max-width: 100%;
-      height: auto;
     }
 
     .sidebar-brand-icon {
@@ -350,7 +345,11 @@
 
   <!-- Marca -->
   <div class="sidebar-brand">
-    <img src="<?= $_ENV['APP_URL'] ?? '' ?>/storage/uploads/logos/logo_menu.png" alt="Logo KewanFarma" style="max-width: 180px; height: auto; display: block;">
+    <div class="sidebar-brand-icon"><i class="bi bi-capsule-pill"></i></div>
+    <div class="sidebar-brand-text">
+      <h2>KewanFarma</h2>
+      <span>Sistema de Gestão</span>
+    </div>
   </div>
 
   <!-- Utilizador -->
@@ -378,91 +377,51 @@
 
   <!-- Navegação -->
   <nav class="sidebar-nav">
-    <?php use App\Middleware\AuthMiddleware; ?>
 
-    <?php if (AuthMiddleware::temAcesso('dashboard')): ?>
     <div class="nav-section-label">Principal</div>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/dashboard" class="nav-item <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
       <i class="bi bi-speedometer2"></i> Dashboard
     </a>
-    <?php endif; ?>
 
-    <?php if (AuthMiddleware::temAcesso('vendas') || AuthMiddleware::temAcesso('caixa')): ?>
     <div class="nav-section-label">Balcão</div>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('vendas')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/vendas/nova" class="nav-item <?= ($activePage ?? '') === 'venda-nova' ? 'active' : '' ?>">
       <i class="bi bi-cart-plus"></i> Nova Venda
     </a>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/vendas" class="nav-item <?= ($activePage ?? '') === 'vendas' ? 'active' : '' ?>">
       <i class="bi bi-receipt"></i> Vendas
     </a>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('caixa')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/caixa" class="nav-item <?= ($activePage ?? '') === 'caixa' ? 'active' : '' ?>">
       <i class="bi bi-cash-stack"></i> Caixa
     </a>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('clientes')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/clientes" class="nav-item <?= ($activePage ?? '') === 'clientes' ? 'active' : '' ?>">
       <i class="bi bi-people"></i> Clientes
     </a>
-    <?php endif; ?>
 
-    <?php if (AuthMiddleware::temAcesso('produtos') || AuthMiddleware::temAcesso('compras') || AuthMiddleware::temAcesso('fornecedores')): ?>
     <div class="nav-section-label">Stock</div>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('produtos')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/produtos" class="nav-item <?= ($activePage ?? '') === 'produtos' ? 'active' : '' ?>">
       <i class="bi bi-boxes"></i> Produtos
     </a>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('compras')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/compras" class="nav-item <?= ($activePage ?? '') === 'compras' ? 'active' : '' ?>">
       <i class="bi bi-truck"></i> Compras
     </a>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('fornecedores')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/fornecedores" class="nav-item <?= ($activePage ?? '') === 'fornecedores' ? 'active' : '' ?>">
       <i class="bi bi-building"></i> Fornecedores
     </a>
-    <?php endif; ?>
 
-    <?php if (AuthMiddleware::temAcesso('funcionarios') || AuthMiddleware::temAcesso('relatorios')): ?>
+    <?php if (in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico'])): ?>
     <div class="nav-section-label">Gestão</div>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('funcionarios')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/funcionarios" class="nav-item <?= ($activePage ?? '') === 'funcionarios' ? 'active' : '' ?>">
       <i class="bi bi-person-badge"></i> Funcionários
     </a>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('relatorios')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/relatorios" class="nav-item <?= ($activePage ?? '') === 'relatorios' ? 'active' : '' ?>">
       <i class="bi bi-bar-chart-line"></i> Relatórios
     </a>
     <?php endif; ?>
 
-    <?php if (AuthMiddleware::temAcesso('configuracoes') || AuthMiddleware::temAcesso('backup')): ?>
+    <?php if (($_SESSION['perfil'] ?? '') === 'admin'): ?>
     <div class="nav-section-label">Sistema</div>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('configuracoes')): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/configuracoes" class="nav-item <?= ($activePage ?? '') === 'configuracoes' ? 'active' : '' ?>">
       <i class="bi bi-gear"></i> Configurações
-    </a>
-    <?php endif; ?>
-
-    <?php if (AuthMiddleware::temAcesso('backup')): ?>
-    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/configuracoes" class="nav-item <?= ($activePage ?? '') === 'backup' ? 'active' : '' ?>">
-      <i class="bi bi-cloud-download"></i> Backup
     </a>
     <?php endif; ?>
 
@@ -521,6 +480,22 @@
 <main class="kf-main">
   <div class="kf-content">
 
+    <?php if (!empty($flash_sucesso)): ?>
+      <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        <span><?= htmlspecialchars($flash_sucesso) ?></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <?php endif; ?>
+
+    <?php if (!empty($flash_erro)): ?>
+      <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span><?= htmlspecialchars($flash_erro) ?></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <?php endif; ?>
+
     <?= $content ?>
   </div>
 </main>
@@ -538,21 +513,7 @@
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Componente de Toast -->
-<?php include __DIR__ . '/../components/toast.php'; ?>
-
 <script>
-// Exibir flash messages como toast
-document.addEventListener('DOMContentLoaded', function() {
-  <?php if (!empty($flash_sucesso)): ?>
-  Toast.success(<?= json_encode($flash_sucesso) ?>, 'Sucesso');
-  <?php endif; ?>
-  
-  <?php if (!empty($flash_erro)): ?>
-  Toast.error(<?= json_encode($flash_erro) ?>, 'Erro');
-  <?php endif; ?>
-});
-
 // Toggle da sidebar (mobile)
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');

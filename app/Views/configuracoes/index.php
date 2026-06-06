@@ -12,6 +12,18 @@
   </a>
 </div>
 
+<?php if (!empty($flash_sucesso)): ?>
+<div class="alert alert-success py-2 px-3 mb-3">
+  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($flash_erro)): ?>
+<div class="alert alert-danger py-2 px-3 mb-3">
+  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
+</div>
+<?php endif; ?>
+
 <form method="POST" enctype="multipart/form-data" action="<?= $APP ?>/configuracoes">
   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
 
@@ -112,79 +124,6 @@
       <div class="alert alert-light border mt-3 mb-0">
         <i class="bi bi-lightbulb me-2"></i>Estas informações são usadas nos talões e nos documentos emitidos pelo sistema.
       </div>
-    </div>
-  </div>
-
-  <!-- Seção de Backups -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white border-bottom-0 py-3">
-      <h6 class="fw-bold mb-0"><i class="bi bi-cloud-arrow-down me-2"></i>Gestão de Backups</h6>
-    </div>
-    <div class="card-body">
-      <div class="alert alert-info border-0 mb-3">
-        <i class="bi bi-info-circle me-2"></i>Os backups são armazenados automaticamente no diretório <code>storage/backups/</code>. 
-        O sistema é configurado para fazer backup automático diariamente às 19h30.
-      </div>
-
-      <!-- Botão para fazer backup manual -->
-      <div class="mb-4">
-        <label class="form-label small fw-semibold d-block mb-2">Fazer backup manual agora</label>
-        <form method="POST" action="<?= $APP ?>/configuracoes/fazer-backup" class="d-inline">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-          <button type="submit" class="btn btn-primary btn-sm">
-            <i class="bi bi-cloud-arrow-down me-2"></i>Fazer backup agora
-          </button>
-        </form>
-      </div>
-
-      <!-- Lista de backups -->
-      <?php if (!empty($backups)): ?>
-      <div class="mb-3">
-        <label class="small fw-semibold d-block mb-2">Backups disponíveis (<?= count($backups) ?>)</label>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
-              <tr>
-                <th class="small fw-semibold">Data e Hora</th>
-                <th class="small fw-semibold">Tamanho</th>
-                <th class="small fw-semibold">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($backups as $backup): ?>
-              <tr>
-                <td class="small">
-                  <i class="bi bi-file-earmark-database me-2 text-muted"></i>
-                  <?= htmlspecialchars($backup['data']) ?>
-                </td>
-                <td class="small text-muted"><?= htmlspecialchars($backup['tamanho']) ?></td>
-                <td>
-                  <div class="btn-group btn-group-sm" role="group">
-                    <a href="<?= $APP ?>/configuracoes/download-backup?arquivo=<?= urlencode($backup['arquivo']) ?>" 
-                       class="btn btn-outline-primary btn-sm" title="Descarregar backup">
-                      <i class="bi bi-download me-1"></i>Descarregar
-                    </a>
-                    <form method="POST" action="<?= $APP ?>/configuracoes/deletar-backup" class="d-inline" 
-                          onsubmit="return confirm('Tem certeza que deseja deletar este backup?');">
-                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                      <input type="hidden" name="arquivo" value="<?= htmlspecialchars($backup['arquivo']) ?>">
-                      <button type="submit" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-trash me-1"></i>Deletar
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <?php else: ?>
-      <div class="alert alert-warning border-0 mb-3">
-        <i class="bi bi-exclamation-triangle me-2"></i>Nenhum backup disponível ainda. Clique no botão acima para fazer o primeiro backup.
-      </div>
-      <?php endif; ?>
     </div>
   </div>
 

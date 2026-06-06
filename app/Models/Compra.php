@@ -101,41 +101,57 @@ class Compra extends BaseModel
                 VALUES (:produto_id, 'entrada', :quantidade, :referencia, :usuario_id, :observacoes)
             ");
  
+            $compra = $this->findById($compraId);
+
             foreach ($recebimentos as $r) {
-                $qty = (int)$r['quantidade_receber'];
-                if ($qty <= 0) continue;
- 
-                // Actualizar quantidade recebida no item
+                $qtdCompra = (int)$r['quantidade_receber'];
+                if ($qtdCompra <= 0) continue;
+
+                // Obter factor de conversão do produto
+                $stmtProd = $this->db->prepare("SELECT fator_conversao, unidade_compra, unidade_venda FROM produtos WHERE id = :id");
+                $stmtProd->execute(['id' => $r['produto_id']]);
+                $prod  = $stmtProd->fetch();
+                $fator = (float)($prod['fator_conversao'] ?? 1);
+                if ($fator <= 0) $fator = 1;
+
+                // Converter: ex. 10 caixas × 10 cartelas/caixa = 100 cartelas em stock
+                $qtdVenda = (int)round($qtdCompra * $fator);
+
+                $obsLote = 'Compra #' . $compraId;
+                if ($fator > 1) {
+                    $obsLote .= " | {$qtdCompra} {$prod['unidade_compra']} × {$fator} = {$qtdVenda} {$prod['unidade_venda']}";
+                }
+
+                // Actualizar quantidade recebida no item (em unidade de compra)
                 $stmtUpdate->execute([
-                    'qty'       => $qty,
+                    'qty'       => $qtdCompra,
                     'id'        => $r['item_id'],
                     'compra_id' => $compraId,
                 ]);
- 
-                // Criar/actualizar lote
-                $lote    = $r['numero_lote']   ?? ('LT-' . date('Ymd') . '-' . $r['produto_id']);
-                $validade = $r['validade_lote'] ?? null;
- 
+
+                // Criar/actualizar lote com stock em unidade de venda
+                $lote     = $r['numero_lote']   ?? ('LT-' . date('Ymd') . '-' . $r['produto_id']);
+                $validade = $r['validade_lote']  ?? null;
+
                 $stmtLote->execute([
                     'produto_id'   => $r['produto_id'],
                     'numero_lote'  => $lote,
-                    'quantidade'   => $qty,
+                    'quantidade'   => $qtdVenda,
                     'validade'     => $validade,
                     'data_entrada' => date('Y-m-d'),
-                    'observacoes'  => 'Compra #' . $compraId,
+                    'observacoes'  => $obsLote,
                 ]);
- 
-                // Actualizar stock do produto
-                $stmtStock->execute(['qty' => $qty, 'id' => $r['produto_id']]);
- 
+
+                // Actualizar stock do produto (em unidade de venda)
+                $stmtStock->execute(['qty' => $qtdVenda, 'id' => $r['produto_id']]);
+
                 // Registar movimento
-                $compra = $this->findById($compraId);
                 $stmtMov->execute([
                     'produto_id'  => $r['produto_id'],
-                    'quantidade'  => $qty,
+                    'quantidade'  => $qtdVenda,
                     'referencia'  => $compra['numero_compra'] ?? "CP-$compraId",
                     'usuario_id'  => $_SESSION['usuario_id'] ?? 1,
-                    'observacoes' => "Recepção de compra #$compraId",
+                    'observacoes' => $obsLote,
                 ]);
             }
  

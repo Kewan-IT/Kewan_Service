@@ -128,8 +128,9 @@ $filtro_busca     = trim($_GET['q']       ?? '');
             <th>Categoria</th>
             <th class="text-center" style="width:90px">Stock Act.</th>
             <th class="text-center" style="width:90px">Stock Mín.</th>
-            <th class="text-end"    style="width:110px">Preço Compra</th>
+            <th class="text-end"    style="width:120px">Custo/Unid.</th>
             <th class="text-end"    style="width:110px">Preço Venda</th>
+            <th class="text-end"    style="width:110px">Margem</th>
             <th class="text-end"    style="width:130px">Valor Stock</th>
             <th class="text-center" style="width:100px">Estado</th>
           </tr>
@@ -146,7 +147,13 @@ $filtro_busca     = trim($_GET['q']       ?? '');
                 $estado = ['label'=>'Normal',      'badge'=>'success'];
                 $rowCls = '';
             }
-            $valorStock = $p['estoque_actual'] * $p['preco_compra'];
+            $fator      = max(1, (float)($p['fator_conversao'] ?? 1));
+            $uVenda     = $p['unidade_venda'] ?? 'unidade';
+            $custoUnit  = $fator > 0 ? $p['preco_compra'] / $fator : $p['preco_compra'];
+            $lucroUnit  = $p['preco_venda'] - $custoUnit;
+            $margem     = $p['preco_venda'] > 0 ? round($lucroUnit / $p['preco_venda'] * 100, 1) : 0;
+            // Valor do stock em custo real (qtd em unidades de venda × custo por unidade)
+            $valorStock = $p['estoque_actual'] * $custoUnit;
           ?>
           <tr class="<?= $rowCls ?>">
             <td class="ps-3">
@@ -157,11 +164,20 @@ $filtro_busca     = trim($_GET['q']       ?? '');
             </td>
             <td class="text-muted"><?= htmlspecialchars($p['categoria_nome']) ?></td>
             <td class="text-center fw-bold <?= $p['estoque_actual'] <= 0 ? 'text-danger' : ($p['estoque_actual'] <= $p['estoque_min'] ? 'text-warning' : 'text-success') ?>">
-              <?= $p['estoque_actual'] ?>
+              <?= $p['estoque_actual'] ?> <small class="fw-normal text-muted"><?= htmlspecialchars($uVenda) ?></small>
             </td>
             <td class="text-center text-muted"><?= $p['estoque_min'] ?></td>
-            <td class="text-end text-muted"><?= number_format($p['preco_compra'],2,',','.') ?> MZN</td>
+            <td class="text-end text-muted">
+              <?= number_format($custoUnit,2,',','.') ?> MZN
+              <?php if ($fator > 1): ?>
+              <div style="font-size:10px;color:#9ca3af"><?= number_format($p['preco_compra'],2,',','.') ?> MZN/<?= htmlspecialchars($p['unidade_compra'] ?? 'cx') ?></div>
+              <?php endif; ?>
+            </td>
             <td class="text-end"><?= number_format($p['preco_venda'],2,',','.') ?> MZN</td>
+            <td class="text-end <?= $margem >= 0 ? 'text-success' : 'text-danger' ?> fw-semibold">
+              <?= $margem ?>%
+              <div style="font-size:10px"><?= number_format($lucroUnit,2,',','.') ?> MZN/<?= htmlspecialchars($uVenda) ?></div>
+            </td>
             <td class="text-end fw-semibold" style="color:var(--kf-primary)">
               <?= number_format($valorStock,2,',','.') ?> MZN
             </td>

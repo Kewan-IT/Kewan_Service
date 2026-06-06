@@ -46,6 +46,19 @@ $tiposMov = [
   <?php endif; ?>
 </div>
 
+<?php if (!empty($flash_sucesso)): ?>
+<div class="alert alert-success alert-dismissible fade show mb-3">
+  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+<?php if (!empty($flash_erro)): ?>
+<div class="alert alert-danger alert-dismissible fade show mb-3">
+  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+
 <!-- Estado da caixa -->
 <?php if ($caixaAberta): ?>
 
@@ -258,20 +271,6 @@ $tiposMov = [
         <?php endforeach; ?>
         </tbody>
       </table>
-      <?php if ($historico['last_page'] > 1): ?>
-      <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top" style="font-size:.8rem">
-        <div class="text-muted"><?= $historico['total'] ?> sessões registadas</div>
-        <nav>
-          <ul class="pagination pagination-sm mb-0">
-            <?php for ($pg = 1; $pg <= $historico['last_page']; $pg++): ?>
-            <li class="page-item <?= $pg === $historico['current_page'] ? 'active':'' ?>">
-              <a class="page-link" href="?page=<?= $pg ?>"><?= $pg ?></a>
-            </li>
-            <?php endfor; ?>
-          </ul>
-        </nav>
-      </div>
-      <?php endif; ?>
     </div>
     <?php endif; ?>
   </div>
@@ -391,21 +390,6 @@ $tiposMov = [
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <?php
-          $saldoAtual = (float)$caixaAberta['saldo_inicial'] + (float)$caixaAberta['total_entradas'] - (float)$caixaAberta['total_saidas'];
-          $semFundo = $saldoAtual <= 0;
-          ?>
-          
-          <?php if ($semFundo): ?>
-          <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
-            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
-            <div>
-              <strong>⚠️ Caixa sem fundo!</strong>
-              <p class="mb-0 small">Não é possível fazer movimentos de saída (sangria ou saída) enquanto o saldo do caixa estiver em zero.</p>
-            </div>
-          </div>
-          <?php endif; ?>
-
           <div class="mb-3">
             <label class="form-label fw-semibold">Tipo de Movimento <span class="text-danger">*</span></label>
             <div class="row g-2">
@@ -414,13 +398,11 @@ $tiposMov = [
                 ['suprimento', 'Suprimento', 'bi-plus-circle',       'success'],
                 ['entrada',    'Entrada',    'bi-arrow-down-circle', 'primary'],
                 ['saida',      'Saída',      'bi-dash-circle',       'warning'],
-              ] as [$val,$lbl,$ico,$cor]): 
-                $desabilitado = $semFundo && in_array($val, ['sangria', 'saida']);
-              ?>
+              ] as [$val,$lbl,$ico,$cor]): ?>
               <div class="col-6">
                 <label class="d-flex align-items-center gap-2 p-2 border rounded cursor-pointer"
-                       style="cursor:<?= $desabilitado ? 'not-allowed' : 'pointer' ?>;opacity:<?= $desabilitado ? '0.5' : '1' ?>">
-                  <input type="radio" name="tipo" value="<?= $val ?>" <?= $desabilitado ? 'disabled' : '' ?> required>
+                       style="cursor:pointer">
+                  <input type="radio" name="tipo" value="<?= $val ?>" required>
                   <i class="bi <?= $ico ?> text-<?= $cor ?>"></i>
                   <span class="small fw-semibold"><?= $lbl ?></span>
                 </label>
@@ -438,18 +420,10 @@ $tiposMov = [
             <input type="text" name="descricao" class="form-control" required
                    placeholder="Ex: Sangria para banco, pagamento de despesa...">
           </div>
-          
-          <!-- Info do saldo atual -->
-          <div class="bg-light border rounded p-2">
-            <div class="small text-muted mb-1">Saldo actual:</div>
-            <div class="h6 mb-0" style="color:<?= $saldoAtual > 0 ? 'var(--kf-primary)' : '#dc3545' ?>">
-              MT <?= number_format($saldoAtual, 2, ',', '.') ?>
-            </div>
-          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-warning px-4 fw-bold" <?= $semFundo && !isset($_POST['tipo']) ? 'disabled' : '' ?>>
+          <button type="submit" class="btn btn-warning px-4 fw-bold">
             <i class="bi bi-check-lg me-1"></i>Registar
           </button>
         </div>

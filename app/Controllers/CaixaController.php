@@ -21,8 +21,7 @@ class CaixaController
     public function index(): void
     {
         $caixaAberta  = $this->model->aberta();
-        $page         = max(1, (int)($_GET['page'] ?? 1));
-        $historico    = $this->model->historico($page, 20);
+        $historico    = $this->model->historico(1, 10);
         $stats        = $this->model->estatisticasHoje();
 
         $resumo = null;
@@ -142,16 +141,6 @@ class CaixaController
             $_SESSION['flash_erro'] = 'A descrição é obrigatória.';
             header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/caixa');
             exit;
-        }
-
-        // Validação: Não permitir saída/sangria se o saldo for 0 ou negativo
-        if (in_array($tipo, ['saida', 'sangria'])) {
-            $saldoAtual = $this->model->calcularSaldoAtual($caixaAberta['id']);
-            if ($saldoAtual <= 0) {
-                $_SESSION['flash_erro'] = 'O caixa está sem fundo para este movimento.';
-                header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/caixa');
-                exit;
-            }
         }
 
         $this->model->adicionarMovimento(

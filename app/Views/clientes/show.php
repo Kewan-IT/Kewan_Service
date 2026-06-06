@@ -131,7 +131,7 @@ $c   = $cliente;
                 </span>
               </td>
               <td class="pe-2">
-                <a href="<?= $APP ?>/vendas/<?= $v['id'] ?>/detalhe"
+                <a href="<?= $APP ?>/vendas/<?= $v['id'] ?>"
                    class="btn btn-sm btn-outline-secondary py-0 px-2" title="Ver venda">
                   <i class="bi bi-eye"></i>
                 </a>

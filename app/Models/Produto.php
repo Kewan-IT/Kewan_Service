@@ -142,14 +142,16 @@ class Produto extends BaseModel
         $stmt = $this->db->prepare("
             SELECT
                 p.id, p.nome, p.codigo_barras, p.principio_ativo,
-                p.preco_compra, p.preco_venda, p.estoque_actual,
-                p.requer_receita, p.controlado, p.unidade_medida, p.imagem_url,
+                p.preco_venda, p.estoque_actual, p.requer_receita,
+                p.controlado, p.unidade_medida, p.imagem_url,
+                p.unidade_compra, p.unidade_venda, p.fator_conversao,
                 c.nome AS categoria,
                 (SELECT MIN(l.validade) FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0) AS proxima_validade,
                 (SELECT l.id FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS lote_id
             FROM produtos p
             JOIN categorias c ON c.id = p.categoria_id
             WHERE p.ativo = 1
+              AND p.estoque_actual > 0
               AND (p.nome LIKE :q1 OR p.codigo_barras LIKE :q2 OR p.principio_ativo LIKE :q3)
             ORDER BY p.nome
             LIMIT $limit
@@ -159,10 +161,24 @@ class Produto extends BaseModel
     }
 
     // ----------------------------------------------------------------
-    // Adicionar lote
+    // Adicionar lote — aplica fator_conversao automaticamente
+    // Exemplo: comprar 10 caixas × 10 cartelas = 100 unidades em stock
     // ----------------------------------------------------------------
     public function adicionarLote(array $dados): int
     {
+        // Obter factor de conversão do produto
+        $produto = $this->findById($dados['produto_id']);
+        $fator   = (float)($produto['fator_conversao'] ?? 1);
+        if ($fator <= 0) $fator = 1;
+
+        // Quantidade em unidade de compra (ex: 10 caixas)
+        $qtdCompra  = (int)$dados['quantidade'];
+        // Quantidade convertida em unidade de venda (ex: 100 cartelas)
+        $qtdVenda   = (int)round($qtdCompra * $fator);
+
+        $dados['quantidade_compra'] = $qtdCompra;  // guardar referência
+        $dados['quantidade']        = $qtdVenda;   // stock em unidade de venda
+
         $stmt = $this->db->prepare("
             INSERT INTO lotes (produto_id, numero_lote, quantidade, validade, data_entrada, observacoes)
             VALUES (:produto_id, :numero_lote, :quantidade, :validade, :data_entrada, :observacoes)
@@ -170,15 +186,27 @@ class Produto extends BaseModel
                 quantidade = quantidade + VALUES(quantidade),
                 validade   = VALUES(validade)
         ");
-        $stmt->execute($dados);
+        $stmt->execute([
+            'produto_id'   => $dados['produto_id'],
+            'numero_lote'  => $dados['numero_lote'],
+            'quantidade'   => $dados['quantidade'],
+            'validade'     => $dados['validade'],
+            'data_entrada' => $dados['data_entrada'],
+            'observacoes'  => $dados['observacoes'] ?? null,
+        ]);
 
-        // Actualizar stock do produto
+        // Actualizar stock do produto (em unidade de venda)
         $this->db->prepare("
             UPDATE produtos SET estoque_actual = estoque_actual + :qty WHERE id = :id
-        ")->execute(['qty' => $dados['quantidade'], 'id' => $dados['produto_id']]);
+        ")->execute(['qty' => $qtdVenda, 'id' => $dados['produto_id']]);
+
+        $obs = ($dados['observacoes'] ?? null);
+        if ($fator > 1) {
+            $obs = trim("$obs | {$qtdCompra} {$produto['unidade_compra']} × {$fator} = {$qtdVenda} {$produto['unidade_venda']}");
+        }
 
         // Registar movimento
-        $this->registarMovimento($dados['produto_id'], 'entrada', $dados['quantidade'], null, $dados['observacoes'] ?? null);
+        $this->registarMovimento($dados['produto_id'], 'entrada', $qtdVenda, null, $obs);
 
         return (int) $this->db->lastInsertId();
     }

@@ -204,20 +204,43 @@ if (!empty($lotes)) {
     <!-- Preços -->
     <div class="ficha-section">
       <div class="ficha-section-title"><i class="bi bi-currency-exchange"></i> Preços</div>
+      <?php
+        $fator      = max(1, (float)($p['fator_conversao'] ?? 1));
+        $uCompra    = $p['unidade_compra'] ?? 'caixa';
+        $uVenda     = $p['unidade_venda']  ?? 'unidade';
+        $custoUnit  = $p['preco_compra'] > 0 ? $p['preco_compra'] / $fator : 0;
+        $lucroUnit  = $p['preco_venda'] - $custoUnit;
+        $lucroCaixa = $lucroUnit * $fator;
+        $margem     = $p['preco_venda'] > 0 ? round($lucroUnit / $p['preco_venda'] * 100, 1) : 0;
+      ?>
       <div class="row g-2 text-center">
         <div class="col-6">
-          <div class="dado-label">Compra</div>
+          <div class="dado-label">Compra <small class="text-muted">(por <?= htmlspecialchars($uCompra) ?>)</small></div>
           <div class="fw-bold" style="font-size:1.1rem">MT <?= number_format((float)$p['preco_compra'],2,',','.') ?></div>
+          <?php if ($fator > 1): ?>
+          <div class="text-muted" style="font-size:11px">MT <?= number_format($custoUnit,2,',','.') ?>/<?= htmlspecialchars($uVenda) ?></div>
+          <?php endif; ?>
         </div>
         <div class="col-6">
-          <div class="dado-label">Venda</div>
+          <div class="dado-label">Venda <small class="text-muted">(por <?= htmlspecialchars($uVenda) ?>)</small></div>
           <div class="fw-bold" style="font-size:1.1rem;color:var(--kf-primary)">MT <?= number_format((float)$p['preco_venda'],2,',','.') ?></div>
         </div>
         <?php if ($p['preco_compra'] > 0): ?>
-        <div class="col-12 mt-1">
-          <div class="dado-label">Margem de lucro</div>
-          <?php $margem = round((($p['preco_venda'] - $p['preco_compra']) / $p['preco_compra']) * 100, 1); ?>
-          <div class="fw-bold <?= $margem >= 0 ? 'text-success' : 'text-danger' ?>"><?= $margem ?>%</div>
+        <div class="col-12 mt-1 pt-2" style="border-top:1px solid #e9ecef">
+          <div class="row g-1 text-center">
+            <div class="col-4">
+              <div class="dado-label" style="font-size:10px">Margem</div>
+              <div class="fw-bold <?= $margem >= 0 ? 'text-success' : 'text-danger' ?>"><?= $margem ?>%</div>
+            </div>
+            <div class="col-4">
+              <div class="dado-label" style="font-size:10px">Lucro/<?= htmlspecialchars($uVenda) ?></div>
+              <div class="fw-bold <?= $lucroUnit >= 0 ? 'text-success' : 'text-danger' ?>">MT <?= number_format($lucroUnit,2,',','.') ?></div>
+            </div>
+            <div class="col-4">
+              <div class="dado-label" style="font-size:10px">Lucro/<?= htmlspecialchars($uCompra) ?></div>
+              <div class="fw-bold <?= $lucroCaixa >= 0 ? 'text-success' : 'text-danger' ?>">MT <?= number_format($lucroCaixa,2,',','.') ?></div>
+            </div>
+          </div>
         </div>
         <?php endif; ?>
       </div>

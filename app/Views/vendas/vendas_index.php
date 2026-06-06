@@ -93,7 +93,7 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
             <td class="d-none d-md-table-cell text-muted"><?= $formas[$v['forma_pagamento']] ?? $v['forma_pagamento'] ?></td>
             <td class="text-end fw-bold" style="color:var(--kf-primary)">MT <?= number_format((float)$v['total'],2,',','.') ?></td>
             <td><span class="badge bg-<?= $cor ?>-subtle text-<?= $cor ?> border border-<?= $cor ?>-subtle rounded-pill px-2"><?= $lbl ?></span></td>
-            <td class="pe-3"><a href="<?= $APP ?>/vendas/<?= $v['id'] ?>/detalhe" class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-eye"></i></a></td>
+            <td class="pe-3"><a href="<?= $APP ?>/vendas/<?= $v['id'] ?>" class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-eye"></i></a></td>
           </tr>
         <?php endforeach; ?>
         </tbody>
