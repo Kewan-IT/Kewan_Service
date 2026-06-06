@@ -81,7 +81,7 @@ class CaixaController
     // ================================================================
     public function fechar(): void
     {
-        AuthMiddleware::requirePerfil('admin', 'farmaceutico', 'caixa');
+        AuthMiddleware::check();
         $this->verificarCsrf();
 
         $caixaAberta = $this->model->aberta();

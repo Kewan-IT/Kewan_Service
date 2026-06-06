@@ -14,7 +14,7 @@ class RelatorioController
 
     public function __construct()
     {
-        AuthMiddleware::check();
+        AuthMiddleware::apenasAdmin();
         $this->db = Database::getInstance();
     }
 

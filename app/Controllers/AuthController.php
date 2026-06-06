@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Controllers;
 
 use App\Models\Usuario;
@@ -21,13 +20,17 @@ class AuthController
     public function showLogin(): void
     {
         AuthMiddleware::guest();
+
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
         View::render('auth.login', [
-            'titulo' => 'Entrar no Sistema',
+            'titulo' => 'Login',
             'erro'   => $_SESSION['erro_login'] ?? null,
-            'aviso'  => $_SESSION['aviso_login'] ?? null,
         ], 'auth');
 
-        unset($_SESSION['erro_login'], $_SESSION['aviso_login']);
+        unset($_SESSION['erro_login']);
     }
 
     // ----------------------------------------------------------------
@@ -41,7 +44,6 @@ class AuthController
         $email = trim(filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL) ?? '');
         $senha = $_POST['senha'] ?? '';
 
-        // Validação básica
         if (empty($email) || empty($senha)) {
             $this->redirectLogin('Preencha o email e a senha.');
             return;
@@ -49,13 +51,11 @@ class AuthController
 
         $usuario = $this->usuarioModel->findByEmail($email);
 
-        // Utilizador não existe
         if (!$usuario) {
             $this->redirectLogin('Credenciais inválidas. Verifique o email e a senha.');
             return;
         }
 
-        // Conta inactiva
         if (!$usuario['ativo']) {
             $this->redirectLogin('A sua conta está desactivada. Contacte o administrador.');
             return;
@@ -64,43 +64,44 @@ class AuthController
         // Conta bloqueada temporariamente
         if (!empty($usuario['bloqueado_ate']) && strtotime($usuario['bloqueado_ate']) > time()) {
             $minutos = ceil((strtotime($usuario['bloqueado_ate']) - time()) / 60);
-            $this->redirectLogin("Conta bloqueada por excesso de tentativas. Tente novamente em {$minutos} minuto(s).");
+            $this->redirectLogin("Conta bloqueada. Tente novamente em {$minutos} minuto(s).");
             return;
         }
 
-        // Senha incorrecta
+        // Verificar senha
         if (!password_verify($senha, $usuario['senha_hash'])) {
+            // Incrementar tentativas
             $tentativas = (int)$usuario['tentativas_login'] + 1;
+            $bloquear   = null;
 
             if ($tentativas >= 5) {
-                // Bloqueia por 30 minutos
-                $bloqueadoAte = date('Y-m-d H:i:s', strtotime('+30 minutes'));
-                $this->usuarioModel->update($usuario['id'], [
-                    'tentativas_login' => $tentativas,
-                    'bloqueado_ate'    => $bloqueadoAte,
-                ]);
-                $this->redirectLogin('Conta bloqueada por 30 minutos devido a excesso de tentativas falhadas.');
-            } else {
-                $this->usuarioModel->update($usuario['id'], [
-                    'tentativas_login' => $tentativas,
-                ]);
-                $restam = 5 - $tentativas;
-                $this->redirectLogin("Credenciais inválidas. Restam {$restam} tentativa(s).");
+                $bloquear   = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+                $tentativas = 0;
             }
+
+            $this->usuarioModel->update($usuario['id'], [
+                'tentativas_login' => $tentativas,
+                'bloqueado_ate'    => $bloquear,
+            ]);
+
+            $restantes = max(0, 5 - $tentativas);
+            $msg = $bloquear
+                ? 'Conta bloqueada por 15 minutos após 5 tentativas falhadas.'
+                : "Credenciais inválidas. Restam {$restantes} tentativa(s).";
+
+            $this->redirectLogin($msg);
             return;
         }
 
-        // Login bem-sucedido — resetar tentativas e registar acesso
+        // Login bem sucedido — resetar tentativas
         $this->usuarioModel->update($usuario['id'], [
             'tentativas_login' => 0,
             'bloqueado_ate'    => null,
             'ultimo_login'     => date('Y-m-d H:i:s'),
         ]);
 
-        // Regenerar ID de sessão por segurança
         session_regenerate_id(true);
 
-        // Guardar dados do utilizador na sessão
         $_SESSION['usuario_id']   = $usuario['id'];
         $_SESSION['usuario_nome'] = $usuario['nome'];
         $_SESSION['usuario_email']= $usuario['email'];
@@ -108,7 +109,15 @@ class AuthController
         $_SESSION['foto_url']     = $usuario['foto_url'] ?? null;
         $_SESSION['csrf_token']   = bin2hex(random_bytes(32));
 
-        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/dashboard');
+        // ── Redireccionamento por perfil ──────────────────────────
+        // Admin e Director → Dashboard
+        // Caixa, Técnico, Farmacêutico → Nova Venda
+        $perfil = $usuario['perfil'];
+        if (in_array($perfil, AuthMiddleware::PERFIS_ADMIN, true)) {
+            header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/dashboard');
+        } else {
+            header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/vendas/nova');
+        }
         exit;
     }
 
@@ -134,7 +143,6 @@ class AuthController
             'sucesso' => $_SESSION['recuperar_sucesso'] ?? null,
             'erro'    => $_SESSION['recuperar_erro']    ?? null,
         ], 'auth');
-
         unset($_SESSION['recuperar_sucesso'], $_SESSION['recuperar_erro']);
     }
 
@@ -156,19 +164,14 @@ class AuthController
 
         $usuario = $this->usuarioModel->findByEmail($email);
 
-        // Não revelar se o email existe ou não (segurança)
         if ($usuario && $usuario['ativo']) {
-            $token   = bin2hex(random_bytes(32));
-            $expira  = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            $token  = bin2hex(random_bytes(32));
+            $expira = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
             $this->usuarioModel->update($usuario['id'], [
                 'token_reset'     => password_hash($token, PASSWORD_BCRYPT),
                 'token_expira_em' => $expira,
             ]);
-
-            // TODO: enviar email com link de recuperação
-            // $link = ($_ENV['APP_URL'] ?? '') . "/auth/nova-senha?token=$token&email=$email";
-            // MailService::enviarRecuperacao($email, $usuario['nome'], $link);
         }
 
         $_SESSION['recuperar_sucesso'] = 'Se o email estiver registado, receberá as instruções em breve.';
@@ -176,8 +179,6 @@ class AuthController
         exit;
     }
 
-    // ----------------------------------------------------------------
-    // Helpers privados
     // ----------------------------------------------------------------
     private function redirectLogin(string $erro): void
     {
@@ -188,8 +189,8 @@ class AuthController
 
     private function verificarCsrf(): void
     {
-        $tokenPost    = $_POST['csrf_token'] ?? '';
-        $tokenSessao  = $_SESSION['csrf_token'] ?? '';
+        $tokenPost   = $_POST['csrf_token']  ?? '';
+        $tokenSessao = $_SESSION['csrf_token'] ?? '';
 
         if (empty($tokenPost) || !hash_equals($tokenSessao, $tokenPost)) {
             http_response_code(419);

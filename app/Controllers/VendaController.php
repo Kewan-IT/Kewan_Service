@@ -240,7 +240,7 @@ class VendaController
     // ================================================================
     public function cancelar(string $id): void
     {
-        AuthMiddleware::requirePerfil('admin', 'farmaceutico');
+        AuthMiddleware::requirePerfil('admin', 'diretor', 'farmaceutico');
         $this->verificarCsrf();
 
         $motivo = trim($_POST['motivo'] ?? 'Cancelamento solicitado');

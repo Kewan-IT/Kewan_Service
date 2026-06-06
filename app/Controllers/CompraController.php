@@ -15,7 +15,7 @@ class CompraController
  
     public function __construct()
     {
-        AuthMiddleware::check();
+        AuthMiddleware::apenasAdmin();
         $this->model        = new Compra();
         $this->produtoModel = new Produto();
     }

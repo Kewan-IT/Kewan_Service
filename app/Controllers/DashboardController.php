@@ -11,7 +11,7 @@ class DashboardController
 
     public function __construct()
     {
-        AuthMiddleware::check();
+        AuthMiddleware::apenasAdmin();
         $this->model = new Dashboard();
     }
 

@@ -81,7 +81,6 @@
       color: rgba(255,255,255,.45);
     }
 
-    /* Utilizador na sidebar */
     .sidebar-user {
       padding: 14px 18px;
       display: flex;
@@ -102,7 +101,6 @@
     }
 
     .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
     .sidebar-user-info { min-width: 0; }
 
     .sidebar-user-info strong {
@@ -119,7 +117,6 @@
       color: rgba(255,255,255,.45);
     }
 
-    /* Badge de perfil */
     .perfil-badge {
       font-size: 10px;
       padding: 1px 7px;
@@ -128,11 +125,11 @@
     }
 
     .perfil-admin        { background: rgba(220,53,69,.25);  color: #ff8a8a; }
+    .perfil-diretor      { background: rgba(111,66,193,.25); color: #c4b5fd; }
     .perfil-farmaceutico { background: rgba(26,127,90,.35);  color: #6ee7b7; }
     .perfil-caixa        { background: rgba(13,110,253,.25); color: #93c5fd; }
     .perfil-tecnico      { background: rgba(253,126,20,.25); color: #fca96a; }
 
-    /* Navegação */
     .sidebar-nav { padding: 12px 0; flex: 1; }
 
     .nav-section-label {
@@ -189,7 +186,6 @@
       font-weight: 600;
     }
 
-    /* Sidebar footer */
     .sidebar-footer {
       padding: 12px 18px;
       border-top: 1px solid rgba(255,255,255,.07);
@@ -241,11 +237,7 @@
       padding: 4px;
     }
 
-    .breadcrumb {
-      margin: 0;
-      font-size: 13px;
-    }
-
+    .breadcrumb { margin: 0; font-size: 13px; }
     .breadcrumb-item + .breadcrumb-item::before { color: #aaa; }
     .breadcrumb-item.active { color: var(--kf-primary); font-weight: 600; }
 
@@ -276,31 +268,17 @@
       border: 1.5px solid #fff;
     }
 
-    /* ── Conteúdo principal ── */
     .kf-main {
       margin-left: var(--kf-sidebar-width);
       padding-top: var(--kf-header-h);
       min-height: 100vh;
     }
 
-    .kf-content {
-      padding: 28px 28px 40px;
-    }
+    .kf-content { padding: 28px 28px 40px; }
 
-    .page-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1a2e27;
-      margin-bottom: 4px;
-    }
+    .page-title { font-size: 20px; font-weight: 700; color: #1a2e27; margin-bottom: 4px; }
+    .page-subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
 
-    .page-subtitle {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 24px;
-    }
-
-    /* ── Alerta de sessão a expirar ── */
     #alerta-sessao {
       position: fixed;
       bottom: 24px; right: 24px;
@@ -315,7 +293,6 @@
       max-width: 320px;
     }
 
-    /* ── Responsive ── */
     .sidebar-overlay {
       display: none;
       position: fixed;
@@ -337,13 +314,18 @@
 </head>
 <body>
 
-<!-- Overlay para mobile -->
+<?php
+// Determinar nível de acesso
+$perfil       = $_SESSION['perfil'] ?? '';
+$isAdmin      = in_array($perfil, ['admin', 'diretor']);
+$isRestrito   = in_array($perfil, ['caixa', 'tecnico', 'farmaceutico']);
+?>
+
 <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 
 <!-- ── Sidebar ── -->
 <aside class="kf-sidebar" id="sidebar">
 
-  <!-- Marca -->
   <div class="sidebar-brand">
     <div class="sidebar-brand-icon"><i class="bi bi-capsule-pill"></i></div>
     <div class="sidebar-brand-text">
@@ -352,7 +334,6 @@
     </div>
   </div>
 
-  <!-- Utilizador -->
   <div class="sidebar-user">
     <div class="sidebar-user-avatar">
       <?php if (!empty($_SESSION['foto_url'])): ?>
@@ -363,20 +344,23 @@
     </div>
     <div class="sidebar-user-info">
       <strong><?= htmlspecialchars($_SESSION['usuario_nome'] ?? '') ?></strong>
-      <span class="perfil-badge perfil-<?= $_SESSION['perfil'] ?? '' ?>">
-        <?= match($_SESSION['perfil'] ?? '') {
+      <span class="perfil-badge perfil-<?= $perfil ?>">
+        <?= match($perfil) {
               'admin'        => 'Administrador',
+              'diretor'      => 'Director',
               'farmaceutico' => 'Farmacêutico',
               'caixa'        => 'Caixa',
               'tecnico'      => 'Técnico',
-              default        => ucfirst($_SESSION['perfil'] ?? '')
+              default        => ucfirst($perfil)
             } ?>
       </span>
     </div>
   </div>
 
-  <!-- Navegação -->
   <nav class="sidebar-nav">
+
+    <?php if ($isAdmin): ?>
+    <!-- ══ MENU COMPLETO — ADMIN / DIRECTOR ══ -->
 
     <div class="nav-section-label">Principal</div>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/dashboard" class="nav-item <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
@@ -408,7 +392,6 @@
       <i class="bi bi-building"></i> Fornecedores
     </a>
 
-    <?php if (in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico'])): ?>
     <div class="nav-section-label">Gestão</div>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/funcionarios" class="nav-item <?= ($activePage ?? '') === 'funcionarios' ? 'active' : '' ?>">
       <i class="bi bi-person-badge"></i> Funcionários
@@ -416,18 +399,38 @@
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/relatorios" class="nav-item <?= ($activePage ?? '') === 'relatorios' ? 'active' : '' ?>">
       <i class="bi bi-bar-chart-line"></i> Relatórios
     </a>
-    <?php endif; ?>
 
-    <?php if (($_SESSION['perfil'] ?? '') === 'admin'): ?>
     <div class="nav-section-label">Sistema</div>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/configuracoes" class="nav-item <?= ($activePage ?? '') === 'configuracoes' ? 'active' : '' ?>">
       <i class="bi bi-gear"></i> Configurações
     </a>
+    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/backup" class="nav-item <?= ($activePage ?? '') === 'backup' ? 'active' : '' ?>">
+      <i class="bi bi-cloud-download"></i> Backup
+    </a>
+
+    <?php else: ?>
+    <!-- ══ MENU RESTRITO — CAIXA / TÉCNICO / FARMACÊUTICO ══ -->
+
+    <div class="nav-section-label">Balcão</div>
+    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/vendas/nova" class="nav-item <?= ($activePage ?? '') === 'venda-nova' ? 'active' : '' ?>">
+      <i class="bi bi-cart-plus"></i> Nova Venda
+    </a>
+    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/vendas" class="nav-item <?= ($activePage ?? '') === 'vendas' ? 'active' : '' ?>">
+      <i class="bi bi-receipt"></i> Vendas
+    </a>
+    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/caixa" class="nav-item <?= ($activePage ?? '') === 'caixa' ? 'active' : '' ?>">
+      <i class="bi bi-cash-stack"></i> Caixa
+    </a>
+
+    <div class="nav-section-label">Sistema</div>
+    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/backup" class="nav-item <?= ($activePage ?? '') === 'backup' ? 'active' : '' ?>">
+      <i class="bi bi-cloud-download"></i> Backup
+    </a>
+
     <?php endif; ?>
 
   </nav>
 
-  <!-- Footer da sidebar -->
   <div class="sidebar-footer">
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/auth/logout" class="btn-logout"
        onclick="return confirm('Tem a certeza que deseja sair do sistema?')">
@@ -443,10 +446,12 @@
     <button class="btn-menu-toggle" onclick="toggleSidebar()" aria-label="Menu">
       <i class="bi bi-list"></i>
     </button>
-
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="<?= $_ENV['APP_URL'] ?? '' ?>/dashboard" style="color:#888;text-decoration:none">Início</a></li>
+        <li class="breadcrumb-item">
+          <a href="<?= $_ENV['APP_URL'] ?? '' ?>/<?= $isAdmin ? 'dashboard' : 'vendas/nova' ?>"
+             style="color:#888;text-decoration:none">Início</a>
+        </li>
         <?php if (!empty($breadcrumb)): ?>
           <?php foreach ($breadcrumb as $label => $url): ?>
             <?php if ($url): ?>
@@ -463,13 +468,13 @@
   </div>
 
   <div class="header-right">
-    <!-- Alertas de stock -->
+    <?php if ($isAdmin): ?>
     <a href="<?= $_ENV['APP_URL'] ?? '' ?>/produtos?filtro=stock_baixo"
        class="btn-header-icon" title="Alertas de stock">
       <i class="bi bi-bell"></i>
       <span class="notif-dot" id="notif-stock" style="display:none"></span>
     </a>
-    <!-- Ajuda -->
+    <?php endif; ?>
     <button class="btn-header-icon" title="Ajuda" onclick="alert('Documentação em construção.')">
       <i class="bi bi-question-circle"></i>
     </button>
@@ -500,7 +505,6 @@
   </div>
 </main>
 
-<!-- Alerta de sessão a expirar -->
 <div id="alerta-sessao">
   <div class="d-flex align-items-center gap-2 mb-2">
     <i class="bi bi-clock-history text-warning fs-5"></i>
@@ -510,17 +514,14 @@
   <button class="btn btn-sm btn-warning w-100" onclick="renovarSessao()">Manter sessão activa</button>
 </div>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Toggle da sidebar (mobile)
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('overlay').classList.toggle('open');
 }
 
-// Alerta de expiração de sessão (avisa 5 minutos antes)
 const SESSION_LIFETIME = <?= (int)($_ENV['SESSION_LIFETIME'] ?? 7200) ?>;
 let tempoRestante = SESSION_LIFETIME;
 let alertaMostrado = false;
@@ -551,7 +552,7 @@ setInterval(() => {
   }
 }, 1000);
 
-// Verificar alertas de stock ao carregar
+<?php if ($isAdmin): ?>
 fetch('<?= $_ENV['APP_URL'] ?? '' ?>/api/estoque/alertas')
   .then(r => r.json())
   .then(d => {
@@ -559,6 +560,7 @@ fetch('<?= $_ENV['APP_URL'] ?? '' ?>/api/estoque/alertas')
       document.getElementById('notif-stock').style.display = 'block';
     }
   }).catch(() => {});
+<?php endif; ?>
 </script>
 
 </body>

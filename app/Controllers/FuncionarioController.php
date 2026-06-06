@@ -18,7 +18,7 @@ class FuncionarioController
 
     public function __construct()
     {
-        AuthMiddleware::check();
+        AuthMiddleware::apenasAdmin();
         $this->model        = new Funcionario();
         $this->cargoModel   = new Cargo();
         $this->usuarioModel = new Usuario();
