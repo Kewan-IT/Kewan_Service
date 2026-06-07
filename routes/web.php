@@ -88,6 +88,14 @@ $router->get('/relatorios/stock/pdf',          ['RelatorioController', 'stockPdf
 $router->get('/configuracoes',  ['ConfiguracaoController', 'index']);
 $router->post('/configuracoes', ['ConfiguracaoController', 'update']);
 
+// ── Backup ───────────────────────────────────────────────────────
+$router->get('/backup',                    ['BackupController', 'index']);
+$router->post('/backup/fazer',             ['BackupController', 'fazer']);
+$router->get('/backup/descarregar',        ['BackupController', 'descarregar']);
+$router->post('/backup/apagar',            ['BackupController', 'apagar']);
+$router->post('/backup/configurar-hora',   ['BackupController', 'configurarHora']);
+$router->get('/api/backup/verificar',      ['BackupController', 'verificarAutomatico']);
+
 // ── API AJAX ─────────────────────────────────────────────────────
 $router->get('/api/produtos/pesquisar',      ['ApiController', 'pesquisarProdutos']);
 $router->get('/api/clientes/pesquisar',      ['ApiController', 'pesquisarClientes']);

@@ -78,7 +78,8 @@ class Configuracao extends BaseModel
             'iva_percentagem' => 'Percentagem de IVA aplicada',
             'prefixo_venda' => 'Prefixo das vendas',
             'prefixo_compra' => 'Prefixo das compras',
-            'dias_alerta_validade' => 'Dias de antecedência para alertas de validade',
+            'dias_alerta_validade'     => 'Dias de antecedência para alertas de validade',
+            'backup_hora_automatico'  => 'Hora diária para execução do backup automático',
             default => 'Configuração do sistema',
         };
     }

@@ -268,6 +268,96 @@
       border: 1.5px solid #fff;
     }
 
+    /* ── Notification dropdown ─────────────────────────── */
+    .notif-wrapper { position: relative; }
+
+    .notif-badge {
+      position: absolute;
+      top: 3px; right: 3px;
+      min-width: 17px; height: 17px;
+      border-radius: 9px;
+      background: #dc3545;
+      border: 1.5px solid #fff;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0 3px;
+    }
+
+    .notif-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 320px;
+      background: #fff;
+      border: 1.5px solid #e4e9e6;
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.13);
+      z-index: 9990;
+      overflow: hidden;
+    }
+    .notif-dropdown.open { display: block; }
+
+    .notif-header {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid #f0f3f1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .notif-header span { font-size: 13px; font-weight: 700; color: #1a2e27; }
+    .notif-header a { font-size: 11px; color: var(--kf-primary); text-decoration: none; }
+    .notif-header a:hover { text-decoration: underline; }
+
+    .notif-list { max-height: 340px; overflow-y: auto; }
+
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid #f5f7f5;
+      text-decoration: none;
+      color: inherit;
+      transition: background .12s;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item:hover { background: #f4f9f6; }
+
+    .notif-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0; margin-top: 1px;
+    }
+    .notif-icon.danger  { background: #fff0f0; color: #dc3545; }
+    .notif-icon.warning { background: #fff8e1; color: #f59e0b; }
+    .notif-icon.info    { background: #e8f4fd; color: #0d6efd; }
+
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-title { font-size: 12.5px; font-weight: 600; color: #1a2e27; margin-bottom: 1px; }
+    .notif-desc  { font-size: 11.5px; color: #888; line-height: 1.4; }
+
+    .notif-empty {
+      padding: 28px 16px;
+      text-align: center;
+      color: #aaa;
+      font-size: 12.5px;
+    }
+    .notif-empty i { font-size: 28px; display: block; margin-bottom: 6px; color: #d0d7d3; }
+
+    .notif-footer {
+      padding: 10px 16px;
+      border-top: 1px solid #f0f3f1;
+      text-align: center;
+    }
+    .notif-footer a { font-size: 12px; color: var(--kf-primary); text-decoration: none; font-weight: 600; }
+    .notif-footer a:hover { text-decoration: underline; }
+
     .kf-main {
       margin-left: var(--kf-sidebar-width);
       padding-top: var(--kf-header-h);
@@ -469,11 +559,28 @@ $isRestrito   = in_array($perfil, ['caixa', 'tecnico', 'farmaceutico']);
 
   <div class="header-right">
     <?php if ($isAdmin): ?>
-    <a href="<?= $_ENV['APP_URL'] ?? '' ?>/produtos?filtro=stock_baixo"
-       class="btn-header-icon" title="Alertas de stock">
-      <i class="bi bi-bell"></i>
-      <span class="notif-dot" id="notif-stock" style="display:none"></span>
-    </a>
+    <div class="notif-wrapper" id="notif-wrapper">
+      <button class="btn-header-icon" id="notif-btn" title="Notificações"
+              onclick="toggleNotifDropdown(event)">
+        <i class="bi bi-bell"></i>
+        <span class="notif-badge" id="notif-badge"></span>
+      </button>
+
+      <div class="notif-dropdown" id="notif-dropdown">
+        <div class="notif-header">
+          <span>Notificações</span>
+          <a href="<?= $_ENV['APP_URL'] ?? '' ?>/relatorios">Ver relatórios</a>
+        </div>
+        <div class="notif-list" id="notif-list">
+          <div class="notif-empty">
+            <i class="bi bi-hourglass-split"></i>A carregar...
+          </div>
+        </div>
+        <div class="notif-footer" id="notif-footer" style="display:none">
+          <a href="<?= $_ENV['APP_URL'] ?? '' ?>/produtos?filtro=stock_baixo">Ver todos os alertas de stock</a>
+        </div>
+      </div>
+    </div>
     <?php endif; ?>
     <button class="btn-header-icon" title="Ajuda" onclick="alert('Documentação em construção.')">
       <i class="bi bi-question-circle"></i>
@@ -553,14 +660,107 @@ setInterval(() => {
 }, 1000);
 
 <?php if ($isAdmin): ?>
-fetch('<?= $_ENV['APP_URL'] ?? '' ?>/api/estoque/alertas')
+// ── Notificações dropdown ──────────────────────────────────────
+const APP_URL = '<?= $_ENV['APP_URL'] ?? '' ?>';
+let notifCarregadas = false;
+
+function toggleNotifDropdown(e) {
+  e.stopPropagation();
+  const dropdown = document.getElementById('notif-dropdown');
+  const isOpen   = dropdown.classList.contains('open');
+  dropdown.classList.toggle('open');
+  if (!isOpen && !notifCarregadas) carregarNotificacoes();
+}
+
+document.addEventListener('click', function(e) {
+  const wrapper = document.getElementById('notif-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    document.getElementById('notif-dropdown').classList.remove('open');
+  }
+});
+
+function carregarNotificacoes() {
+  fetch(APP_URL + '/api/estoque/alertas')
+    .then(r => r.json())
+    .then(d => {
+      notifCarregadas = true;
+      const list   = document.getElementById('notif-list');
+      const badge  = document.getElementById('notif-badge');
+      const footer = document.getElementById('notif-footer');
+      const total  = (d.stock_baixo || 0) + (d.a_vencer || 0);
+
+      // Badge no sino
+      if (total > 0) {
+        badge.textContent = total > 99 ? '99+' : total;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      // Construir itens
+      let html = '';
+
+      if (d.stock_baixo > 0) {
+        html += `
+          <a class="notif-item" href="${APP_URL}/produtos?filtro=stock_baixo">
+            <span class="notif-icon danger"><i class="bi bi-box-seam"></i></span>
+            <span class="notif-body">
+              <span class="notif-title">Stock abaixo do mínimo</span>
+              <span class="notif-desc">${d.stock_baixo} produto(s) com stock insuficiente — reposição necessária.</span>
+            </span>
+          </a>`;
+      }
+
+      if (d.a_vencer > 0) {
+        html += `
+          <a class="notif-item" href="${APP_URL}/relatorios/lotes-a-vencer">
+            <span class="notif-icon warning"><i class="bi bi-calendar-x"></i></span>
+            <span class="notif-body">
+              <span class="notif-title">Lotes a vencer</span>
+              <span class="notif-desc">${d.a_vencer} lote(s) com validade próxima ou expirada.</span>
+            </span>
+          </a>`;
+      }
+
+      if (html === '') {
+        html = `<div class="notif-empty">
+          <i class="bi bi-check-circle"></i>Sem alertas pendentes
+        </div>`;
+        footer.style.display = 'none';
+      } else {
+        footer.style.display = 'block';
+      }
+
+      list.innerHTML = html;
+    })
+    .catch(() => {
+      document.getElementById('notif-list').innerHTML =
+        '<div class="notif-empty"><i class="bi bi-wifi-off"></i>Não foi possível carregar</div>';
+    });
+}
+
+// Carrega badge silenciosamente ao abrir a página (sem abrir o dropdown)
+fetch(APP_URL + '/api/estoque/alertas')
   .then(r => r.json())
   .then(d => {
-    if (d.total > 0) {
-      document.getElementById('notif-stock').style.display = 'block';
+    const total = (d.stock_baixo || 0) + (d.a_vencer || 0);
+    if (total > 0) {
+      const badge = document.getElementById('notif-badge');
+      badge.textContent = total > 99 ? '99+' : total;
+      badge.style.display = 'flex';
+    }
+  }).catch(() => {});
+
+// Verificação silenciosa do backup automático (só para admins)
+fetch(APP_URL + '/api/backup/verificar')
+  .then(r => r.json())
+  .then(d => {
+    if (d.executou) {
+      console.info('[KewanFarma] Backup automático executado:', d.arquivo);
     }
   }).catch(() => {});
 <?php endif; ?>
+
 </script>
 
 </body>
