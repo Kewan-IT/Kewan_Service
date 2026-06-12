@@ -28,7 +28,7 @@ if (!empty($lotes)) {
 <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
   <div class="d-flex gap-3 align-items-start flex-wrap">
     <?php if ($p['imagem_url']): ?>
-    <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($p['imagem_url']) ?>"
+    <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($p['imagem_url']) ?>"
          style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid var(--kf-primary-light)"
          alt="<?= htmlspecialchars($p['nome']) ?>">
     <?php else: ?>

@@ -8,7 +8,7 @@ class UploadService {
     private int    $maxSize;
 
     public function __construct() {
-        $this->baseDir = dirname(__DIR__, 2) . '/storage/uploads/';
+        $this->baseDir = dirname(__DIR__, 2) . '/public/uploads/';
         $this->maxSize = (int) ($_ENV['UPLOAD_MAX_SIZE'] ?? 5242880);
     }
 

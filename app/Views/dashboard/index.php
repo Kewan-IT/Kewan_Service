@@ -262,7 +262,7 @@ $mesesJson      = json_encode($receitaMeses ?? []);
         <div class="rank-row">
           <div class="rank-pos" style="background:<?= $cores[$i] ?>;color:#fff"><?= $medalhas[$i] ?></div>
           <?php if (!empty($f['foto_url'])): ?>
-            <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['foto_url']) ?>" class="avatar-sm" alt="">
+            <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($f['foto_url']) ?>" class="avatar-sm" alt="">
           <?php else: ?>
             <div class="avatar-sm"><?= htmlspecialchars($iniciais) ?></div>
           <?php endif; ?>
@@ -302,7 +302,7 @@ $mesesJson      = json_encode($receitaMeses ?? []);
         <div class="text-center py-2">
           <div style="position:relative;display:inline-block">
             <?php if (!empty($melhorFunc['foto_url'])): ?>
-              <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($melhorFunc['foto_url']) ?>"
+              <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($melhorFunc['foto_url']) ?>"
                    style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #f59e0b" alt="">
             <?php else: ?>
               <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1a7f5a,#0d5c41);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#fff;border:3px solid #f59e0b;margin:0 auto">
@@ -366,7 +366,7 @@ $mesesJson      = json_encode($receitaMeses ?? []);
           ?>
           <div class="bday-card <?= $isHoje ? 'bday-hoje' : 'bday-proximo' ?>">
             <?php if (!empty($a['foto_url'])): ?>
-              <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($a['foto_url']) ?>"
+              <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($a['foto_url']) ?>"
                    style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid <?= $isHoje ? '#ffd93d' : '#ddd' ?>" alt="">
             <?php else: ?>
               <div style="width:40px;height:40px;border-radius:50%;background:<?= $isHoje ? 'linear-gradient(135deg,#ffd93d,#f59e0b)' : '#e8f5f0' ?>;display:flex;align-items:center;justify-content:center;font-weight:700;color:<?= $isHoje ? '#fff' : '#1a7f5a' ?>;font-size:.85rem;flex-shrink:0">

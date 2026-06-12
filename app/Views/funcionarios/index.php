@@ -122,7 +122,7 @@ $APP = $_ENV['APP_URL'] ?? '';
             <td>
               <div class="d-flex align-items-center gap-2">
                 <?php if ($f['foto_url']): ?>
-                  <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['foto_url']) ?>"
+                  <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($f['foto_url']) ?>"
                        class="rounded-circle object-fit-cover" width="34" height="34"
                        alt="<?= htmlspecialchars($f['nome_completo']) ?>">
                 <?php else: ?>

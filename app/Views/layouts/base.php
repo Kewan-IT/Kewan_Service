@@ -427,7 +427,7 @@ $isRestrito   = in_array($perfil, ['caixa', 'tecnico', 'farmaceutico']);
   <div class="sidebar-user">
     <div class="sidebar-user-avatar">
       <?php if (!empty($_SESSION['foto_url'])): ?>
-        <img src="<?= $_ENV['APP_URL'] ?? '' ?>/storage/uploads/<?= htmlspecialchars($_SESSION['foto_url']) ?>" alt="Foto">
+        <img src="<?= $_ENV['APP_URL'] ?? '' ?>/uploads/<?= htmlspecialchars($_SESSION['foto_url']) ?>" alt="Foto">
       <?php else: ?>
         <i class="bi bi-person-fill"></i>
       <?php endif; ?>

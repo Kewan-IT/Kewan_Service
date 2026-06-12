@@ -265,7 +265,7 @@ function selP(array $p, string $k, $v): string { return ($p[$k] ?? '') == $v ? '
         <div class="form-section-title"><i class="bi bi-image"></i> Imagem do Produto</div>
         <div class="d-flex flex-column align-items-center gap-3">
           <?php if (!empty($p['imagem_url'])): ?>
-          <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($p['imagem_url']) ?>"
+          <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($p['imagem_url']) ?>"
                class="img-preview" id="imgPreview" alt="">
           <?php else: ?>
           <div class="img-placeholder" id="imgPlaceholder">

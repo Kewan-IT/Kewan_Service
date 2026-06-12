@@ -310,7 +310,7 @@ function chk(array $f, string $key, string $val): string {
         <div class="form-section-title justify-content-center"><i class="bi bi-camera"></i> Foto Tipo Passe</div>
         <div class="d-flex justify-content-center mb-3" id="fotoWrap">
           <?php if (!empty($f['foto_url'])): ?>
-          <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['foto_url']) ?>"
+          <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($f['foto_url']) ?>"
                class="foto-preview" id="fotoPreview" alt="Foto">
           <?php else: ?>
           <div class="foto-placeholder" id="fotoPlaceholder">
@@ -333,7 +333,7 @@ function chk(array $f, string $key, string $val): string {
       <div class="form-section">
         <div class="form-section-title"><i class="bi bi-file-earmark-person"></i> Doc. de Identificação</div>
         <?php if (!empty($f['doc_identificacao_url'])): ?>
-        <a href="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['doc_identificacao_url']) ?>"
+        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($f['doc_identificacao_url']) ?>"
            target="_blank" class="btn btn-sm btn-outline-success w-100 mb-2">
           <i class="bi bi-file-earmark-pdf me-1"></i>
           <?= htmlspecialchars($f['doc_identificacao_nome'] ?? 'Ver documento') ?>
@@ -356,7 +356,7 @@ function chk(array $f, string $key, string $val): string {
       <div class="form-section">
         <div class="form-section-title"><i class="bi bi-file-earmark-plus"></i> Documento Complementar</div>
         <?php if (!empty($f['doc_complementar_url'])): ?>
-        <a href="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['doc_complementar_url']) ?>"
+        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($f['doc_complementar_url']) ?>"
            target="_blank" class="btn btn-sm btn-outline-success w-100 mb-2">
           <i class="bi bi-file-earmark-pdf me-1"></i>
           <?= htmlspecialchars($f['doc_complementar_nome'] ?? 'Ver documento') ?>

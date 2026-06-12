@@ -99,7 +99,7 @@
              data-id="${p.id}">
           <div class="d-flex align-items-center gap-2">
             ${p.imagem_url
-              ? `<img src="${APP}/storage/uploads/${p.imagem_url}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0" alt="">`
+              ? `<img src="${APP}/uploads/${p.imagem_url}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0" alt="">`
               : `<div style="width:38px;height:38px;border-radius:6px;background:var(--kf-primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;color:var(--kf-primary)"><i class="bi bi-capsule"></i></div>`
             }
             <div class="flex-fill min-width-0">

@@ -43,7 +43,7 @@
   <!-- Cabeçalho -->
   <?php if (!empty($config['logo_farmacia'])): ?>
   <div class="c" style="margin-bottom:8px">
-    <img src="<?= ($_ENV['APP_URL'] ?? '') ?>/storage/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
+    <img src="<?= ($_ENV['APP_URL'] ?? '') ?>/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
          alt="Logo da farmácia"
          style="max-width:100px; max-height:70px; object-fit:contain;">
   </div>

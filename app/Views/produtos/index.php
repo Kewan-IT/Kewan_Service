@@ -132,7 +132,7 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
       <!-- Imagem -->
       <a href="<?= $APP ?>/produtos/<?= $p['id'] ?>">
         <?php if ($p['imagem_url']): ?>
-        <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($p['imagem_url']) ?>"
+        <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($p['imagem_url']) ?>"
              class="produto-img" alt="<?= htmlspecialchars($p['nome']) ?>">
         <?php else: ?>
         <div class="produto-img-placeholder">

@@ -74,7 +74,7 @@
     <div class="card-body">
       <?php if (!empty($config['logo_farmacia'])): ?>
       <div class="d-flex align-items-center gap-3 mb-3">
-        <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
+        <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
              alt="Logo da farmácia"
              style="max-height:90px; width:auto; border:1px solid #e5e7eb; border-radius:12px; background:#fff; padding:4px;">
         <div>

@@ -329,7 +329,7 @@ class ProdutoController
 
         $ext  = pathinfo($file['name'], PATHINFO_EXTENSION);
         $slug = preg_replace('/[^a-z0-9]+/', '-', strtolower($nome));
-        $dest = dirname(__DIR__, 2) . '/storage/uploads/produtos/' . $slug . '-' . uniqid() . '.' . strtolower($ext);
+        $dest = dirname(__DIR__, 2) . '/public/uploads/produtos/' . $slug . '-' . uniqid() . '.' . strtolower($ext);
         if (!move_uploaded_file($file['tmp_name'], $dest)) throw new \RuntimeException('Falha ao guardar a imagem.');
 
         return 'produtos/' . basename($dest);

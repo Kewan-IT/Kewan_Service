@@ -34,7 +34,7 @@ $perfilMap = [
 <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
   <div class="d-flex align-items-center gap-3 flex-wrap">
     <?php if (!empty($f['foto_url'])): ?>
-    <img src="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['foto_url']) ?>"
+    <img src="<?= $APP ?>/uploads/<?= htmlspecialchars($f['foto_url']) ?>"
          class="foto-funcionario" alt="<?= htmlspecialchars($f['nome_completo']) ?>">
     <?php else: ?>
     <div class="foto-placeholder-lg">
@@ -219,7 +219,7 @@ $perfilMap = [
             <div class="text-muted" style="font-size:.75rem"><?= htmlspecialchars($f['doc_identificacao_nome'] ?? '') ?></div>
           </div>
         </div>
-        <a href="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['doc_identificacao_url']) ?>"
+        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($f['doc_identificacao_url']) ?>"
            target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2">
           <i class="bi bi-eye"></i>
         </a>
@@ -236,7 +236,7 @@ $perfilMap = [
             <div class="text-muted" style="font-size:.75rem"><?= htmlspecialchars($f['doc_complementar_nome'] ?? '') ?></div>
           </div>
         </div>
-        <a href="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($f['doc_complementar_url']) ?>"
+        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($f['doc_complementar_url']) ?>"
            target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2">
           <i class="bi bi-eye"></i>
         </a>
@@ -255,7 +255,7 @@ $perfilMap = [
             </div>
           </div>
         </div>
-        <a href="<?= $APP ?>/storage/uploads/<?= htmlspecialchars($doc['ficheiro_url']) ?>"
+        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($doc['ficheiro_url']) ?>"
            target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2">
           <i class="bi bi-eye"></i>
         </a>

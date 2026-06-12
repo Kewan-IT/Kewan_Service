@@ -65,7 +65,7 @@ $valorRisco = array_sum(array_column($lotes, 'valor_em_risco'));
     <div>
       <?php if (!empty($config['logo_farmacia'])): ?>
       <div style="margin-bottom:8px">
-        <img src="<?= $appUrl ?>/storage/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
+        <img src="<?= $appUrl ?>/uploads/<?= htmlspecialchars($config['logo_farmacia']) ?>"
              alt="Logo da farmácia"
              style="max-width:100px; max-height:60px; object-fit:contain;">
       </div>
