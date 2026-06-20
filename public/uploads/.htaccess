@@ -1,0 +1,11 @@
+Options -Indexes
+# Permitir acesso a imagens e documentos carregados
+<FilesMatch "\.(jpg|jpeg|png|webp|gif|pdf)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+# Bloquear qualquer script executável
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|cgi|sh)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>

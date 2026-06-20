@@ -93,7 +93,7 @@ class ProdutoController
         // Upload imagem
         if (!empty($_FILES['imagem']['name'])) {
             try {
-                $dados['imagem_url'] = $this->uploadImagem($_FILES['imagem'], $dados['nome']);
+                $dados['imagem_url'] = $this->upload->uploadProduto($_FILES['imagem'], $dados['nome']);
             } catch (\RuntimeException $e) {
                 $erros['imagem'] = $e->getMessage();
                 $this->renderForm('criar', $dados, $erros);
@@ -191,7 +191,7 @@ class ProdutoController
         // Upload nova imagem
         if (!empty($_FILES['imagem']['name'])) {
             try {
-                $dados['imagem_url'] = $this->uploadImagem($_FILES['imagem'], $dados['nome']);
+                $dados['imagem_url'] = $this->upload->uploadProduto($_FILES['imagem'], $dados['nome']);
             } catch (\RuntimeException $e) {
                 $erros['imagem'] = $e->getMessage();
                 $this->renderForm('editar', array_merge($produto, $dados), $erros, (int) $id);
@@ -317,23 +317,6 @@ class ProdutoController
         return [$dados, $erros];
     }
 
-    private function uploadImagem(array $file, string $nome): string
-    {
-        $allowed = ['image/jpeg', 'image/png', 'image/webp'];
-        $maxSize = 5 * 1024 * 1024;
-
-        if ($file['error'] !== UPLOAD_ERR_OK)          throw new \RuntimeException('Erro no upload.');
-        if ($file['size'] > $maxSize)                  throw new \RuntimeException('Imagem demasiado grande (máx. 5 MB).');
-        $mime = mime_content_type($file['tmp_name']);
-        if (!in_array($mime, $allowed, true))          throw new \RuntimeException('Formato inválido (JPG, PNG ou WebP).');
-
-        $ext  = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $slug = preg_replace('/[^a-z0-9]+/', '-', strtolower($nome));
-        $dest = dirname(__DIR__, 2) . '/public/uploads/produtos/' . $slug . '-' . uniqid() . '.' . strtolower($ext);
-        if (!move_uploaded_file($file['tmp_name'], $dest)) throw new \RuntimeException('Falha ao guardar a imagem.');
-
-        return 'produtos/' . basename($dest);
-    }
 
     private function renderForm(string $modo, array $dados, array $erros, int $id = 0): void
     {

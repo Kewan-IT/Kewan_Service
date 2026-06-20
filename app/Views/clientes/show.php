@@ -1,7 +1,9 @@
 <?php
 // app/Views/clientes/show.php
-$APP = $_ENV['APP_URL'] ?? '';
-$c   = $cliente;
+$APP  = $_ENV['APP_URL'] ?? '';
+$c    = $cliente;
+$tipo = $c['tipo_cliente'] ?? 'singular';
+$isInstituicao = $tipo === 'instituicao';
 ?>
 
 <style>
@@ -9,16 +11,32 @@ $c   = $cliente;
 .ficha-section-title { font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--kf-primary); border-bottom:1px solid var(--kf-primary-light); padding-bottom:.5rem; margin-bottom:1rem; display:flex; align-items:center; gap:.5rem; }
 .dado-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:#999; font-weight:500; margin-bottom:1px; }
 .dado-valor { font-size:.9rem; color:#1a2e27; }
-.avatar-lg { width:72px; height:72px; border-radius:50%; background:var(--kf-primary); display:flex; align-items:center; justify-content:center; font-size:2rem; color:#fff; font-weight:700; flex-shrink:0; }
+.avatar-lg {
+  width:72px; height:72px; border-radius:50%; display:flex;
+  align-items:center; justify-content:center; font-size:2rem;
+  color:#fff; font-weight:700; flex-shrink:0;
+  background: <?= $isInstituicao ? '#1565c0' : 'var(--kf-primary)' ?>;
+}
+.badge-tipo { font-size:.72rem; padding:.3em .7em; border-radius:20px; font-weight:600; }
+.badge-singular    { background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9; }
+.badge-instituicao { background:#e3f2fd; color:#1565c0; border:1px solid #bbdefb; }
 </style>
 
 <!-- Cabeçalho -->
 <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
   <div class="d-flex gap-3 align-items-center">
-    <div class="avatar-lg"><?= mb_strtoupper(mb_substr($c['nome'], 0, 1)) ?></div>
+    <div class="avatar-lg">
+      <i class="bi bi-<?= $isInstituicao ? 'building-fill' : 'person-fill' ?>"></i>
+    </div>
     <div>
       <h1 class="h4 fw-bold mb-1" style="color:var(--kf-primary)"><?= htmlspecialchars($c['nome']) ?></h1>
       <div class="d-flex gap-2 flex-wrap align-items-center">
+        <!-- Badge tipo -->
+        <span class="badge-tipo badge-<?= $tipo ?>">
+          <i class="bi bi-<?= $isInstituicao ? 'building' : 'person' ?> me-1"></i>
+          <?= $isInstituicao ? 'Instituição' : 'Singular' ?>
+        </span>
+        <!-- Badge activo -->
         <?php if ($c['ativo']): ?>
         <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2">Activo</span>
         <?php else: ?>
@@ -45,7 +63,8 @@ $c   = $cliente;
   <!-- Coluna principal -->
   <div class="col-12 col-xl-8 pe-xl-3">
 
-    <!-- Dados pessoais -->
+    <!-- FICHA SINGULAR -->
+    <?php if (!$isInstituicao): ?>
     <div class="ficha-section">
       <div class="ficha-section-title"><i class="bi bi-person"></i> Dados Pessoais</div>
       <div class="row g-3">
@@ -88,7 +107,76 @@ $c   = $cliente;
       </div>
     </div>
 
-    <!-- Histórico de compras -->
+    <!-- FICHA INSTITUIÇÃO -->
+    <?php else: ?>
+    <div class="ficha-section" style="border-top:3px solid #1565c0">
+      <div class="ficha-section-title" style="color:#1565c0;border-color:#bbdefb">
+        <i class="bi bi-building"></i> Dados da Instituição
+      </div>
+      <div class="row g-3">
+        <?php if (!empty($c['nome_comercial'])): ?>
+        <div class="col-sm-6">
+          <div class="dado-label">Nome Comercial</div>
+          <div class="dado-valor"><?= htmlspecialchars($c['nome_comercial']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($c['sector'])): ?>
+        <div class="col-sm-6">
+          <div class="dado-label">Sector de Actividade</div>
+          <div class="dado-valor">
+            <i class="bi bi-briefcase me-1 text-muted"></i><?= htmlspecialchars($c['sector']) ?>
+          </div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($c['pessoa_contacto'])): ?>
+        <div class="col-sm-6">
+          <div class="dado-label">Pessoa de Contacto</div>
+          <div class="dado-valor">
+            <i class="bi bi-person me-1 text-muted"></i><?= htmlspecialchars($c['pessoa_contacto']) ?>
+          </div>
+        </div>
+        <?php endif; ?>
+        <div class="col-sm-3">
+          <div class="dado-label">NUIT</div>
+          <div class="dado-valor fw-semibold"><?= htmlspecialchars($c['nuit'] ?? '—') ?></div>
+        </div>
+        <?php if (!empty($c['bi'])): ?>
+        <div class="col-sm-3">
+          <div class="dado-label">Nº Registo Comercial</div>
+          <div class="dado-valor"><?= htmlspecialchars($c['bi']) ?></div>
+        </div>
+        <?php endif; ?>
+        <div class="col-sm-4">
+          <div class="dado-label">Telefone</div>
+          <div class="dado-valor"><?= htmlspecialchars($c['telefone'] ?? '—') ?></div>
+        </div>
+        <?php if (!empty($c['telefone2'])): ?>
+        <div class="col-sm-4">
+          <div class="dado-label">Telefone Alt.</div>
+          <div class="dado-valor"><?= htmlspecialchars($c['telefone2']) ?></div>
+        </div>
+        <?php endif; ?>
+        <div class="col-sm-4">
+          <div class="dado-label">Email</div>
+          <div class="dado-valor"><?= htmlspecialchars($c['email'] ?? '—') ?></div>
+        </div>
+        <?php if ($c['endereco']): ?>
+        <div class="col-12">
+          <div class="dado-label">Endereço</div>
+          <div class="dado-valor"><?= htmlspecialchars($c['endereco']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if ($c['observacoes']): ?>
+        <div class="col-12">
+          <div class="dado-label">Observações</div>
+          <div class="dado-valor text-muted" style="font-size:.85rem"><?= nl2br(htmlspecialchars($c['observacoes'])) ?></div>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Histórico de compras (comum) -->
     <div class="ficha-section">
       <div class="ficha-section-title">
         <i class="bi bi-receipt"></i> Histórico de Compras

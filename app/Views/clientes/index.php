@@ -22,7 +22,9 @@ $APP = $_ENV['APP_URL'] ?? '';
     ['Total',      $stats['total'],     'bi-people',       '#1a7f5a'],
     ['Activos',    $stats['activos'],   'bi-person-check', '#198754'],
     ['Inactivos',  $stats['inactivos'], 'bi-person-x',     '#6c757d'],
-    ['Novos mês',  $stats['novos_mes'], 'bi-person-plus',  '#0d6efd'],
+    ['Novos mês',  $stats['novos_mes'],       'bi-person-plus',    '#0d6efd'],
+    ['Singulares', $stats['total_singular'],  'bi-person',         '#1a7f5a'],
+    ['Instituições',$stats['total_instituicao'],'bi-building',       '#1565c0'],
   ];
   foreach ($cards as [$lbl, $val, $icon, $cor]):
   ?>
@@ -52,7 +54,7 @@ $APP = $_ENV['APP_URL'] ?? '';
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
           <input type="text" name="q" class="form-control form-control-sm border-start-0"
-                 placeholder="Nome, telefone, NUIT ou BI..."
+                 placeholder="Nome, telefone, NUIT, BI ou email..."
                  value="<?= htmlspecialchars($pesquisa) ?>">
         </div>
       </div>
@@ -64,7 +66,15 @@ $APP = $_ENV['APP_URL'] ?? '';
           <option value="inactivo" <?= $status === 'inactivo' ? 'selected':'' ?>>Inactivos</option>
         </select>
       </div>
-      <div class="col-6 col-md-3 d-flex gap-2">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1 text-muted">Tipo</label>
+        <select name="tipo" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          <option value="singular"    <?= ($tipo ?? '') === 'singular'    ? 'selected':'' ?>>Singular</option>
+          <option value="instituicao" <?= ($tipo ?? '') === 'instituicao' ? 'selected':'' ?>>Instituição</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2 d-flex gap-2">
         <button type="submit" class="btn btn-sm flex-fill" style="background:var(--kf-primary);color:#fff;border:none">
           <i class="bi bi-funnel me-1"></i>Filtrar
         </button>
@@ -90,7 +100,8 @@ $APP = $_ENV['APP_URL'] ?? '';
         <thead style="background:var(--kf-primary-light)">
           <tr>
             <th class="ps-3 py-2 fw-semibold" style="color:var(--kf-primary)">Cliente</th>
-            <th class="py-2 fw-semibold d-none d-md-table-cell" style="color:var(--kf-primary)">Contacto</th>
+            <th class="py-2 fw-semibold d-none d-sm-table-cell" style="color:var(--kf-primary)">Tipo</th>
+              <th class="py-2 fw-semibold d-none d-md-table-cell" style="color:var(--kf-primary)">Contacto</th>
             <th class="py-2 fw-semibold d-none d-lg-table-cell" style="color:var(--kf-primary)">Compras</th>
             <th class="py-2 fw-semibold d-none d-lg-table-cell" style="color:var(--kf-primary)">Total gasto</th>
             <th class="py-2 fw-semibold d-none d-md-table-cell" style="color:var(--kf-primary)">Última visita</th>
@@ -116,6 +127,14 @@ $APP = $_ENV['APP_URL'] ?? '';
                   <?php endif; ?>
                 </div>
               </div>
+            </td>
+            <td class="d-none d-sm-table-cell">
+              <?php
+              $tipoCli = $c['tipo_cliente'] ?? 'singular';
+              if ($tipoCli === 'instituicao'):
+              ?><span style="background:#e3f2fd;color:#1565c0;border:1px solid #bbdefb;font-size:.7rem;padding:.2em .55em;border-radius:20px;font-weight:600;white-space:nowrap"><i class="bi bi-building me-1"></i>Instituição</span><?php
+              else:
+              ?><span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;font-size:.7rem;padding:.2em .55em;border-radius:20px;font-weight:600;white-space:nowrap"><i class="bi bi-person me-1"></i>Singular</span><?php endif; ?>
             </td>
             <td class="d-none d-md-table-cell">
               <div><?= htmlspecialchars($c['telefone'] ?? '—') ?></div>

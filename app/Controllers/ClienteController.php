@@ -16,16 +16,14 @@ class ClienteController
         $this->model = new Cliente();
     }
 
-    // ================================================================
-    // GET /clientes
-    // ================================================================
     public function index(): void
     {
         $pesquisa = trim($_GET['q']      ?? '');
         $status   = $_GET['status']       ?? '';
+        $tipo     = $_GET['tipo']         ?? '';
         $page     = max(1, (int)($_GET['page'] ?? 1));
 
-        $paginacao = $this->model->listar($pesquisa, $status, $page, 20);
+        $paginacao = $this->model->listar($pesquisa, $status, $tipo, $page, 20);
         $stats     = $this->model->estatisticas();
 
         View::render('clientes.index', [
@@ -36,15 +34,13 @@ class ClienteController
             'stats'      => $stats,
             'pesquisa'   => $pesquisa,
             'status'     => $status,
+            'tipo'       => $tipo,
             'flash_sucesso' => $_SESSION['flash_sucesso'] ?? null,
             'flash_erro'    => $_SESSION['flash_erro']    ?? null,
         ]);
         unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro']);
     }
 
-    // ================================================================
-    // GET /clientes/novo
-    // ================================================================
     public function create(): void
     {
         View::render('clientes.form', [
@@ -57,9 +53,6 @@ class ClienteController
         ]);
     }
 
-    // ================================================================
-    // POST /clientes/novo
-    // ================================================================
     public function store(): void
     {
         $this->verificarCsrf();
@@ -87,15 +80,12 @@ class ClienteController
         exit;
     }
 
-    // ================================================================
-    // GET /clientes/{id}
-    // ================================================================
     public function show(string $id): void
     {
         $cliente = $this->model->findComHistorico((int) $id);
         if (!$cliente) { $this->notFound(); return; }
 
-        $vendas   = $this->model->vendas((int) $id, 15);
+        $vendas    = $this->model->vendas((int) $id, 15);
         $favoritos = $this->model->produtosFavoritos((int) $id, 5);
 
         View::render('clientes.show', [
@@ -111,9 +101,6 @@ class ClienteController
         unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro']);
     }
 
-    // ================================================================
-    // GET /clientes/{id}/editar
-    // ================================================================
     public function edit(string $id): void
     {
         $cliente = $this->model->findById((int) $id);
@@ -129,64 +116,33 @@ class ClienteController
         ]);
     }
 
+    public function pesquisarAjax(): void
+    {
+        AuthMiddleware::check();
+        header('Content-Type: application/json; charset=utf-8');
 
+        $q = trim($_GET['q'] ?? '');
+        if (strlen($q) < 1) { echo json_encode([]); exit; }
 
-
-   public function pesquisarAjax(): void
-{
-    AuthMiddleware::check();
-
-    header('Content-Type: application/json; charset=utf-8');
-
-    $q = trim($_GET['q'] ?? '');
-
-    if (strlen($q) < 1) {
-        echo json_encode([]);
-        exit;
+        try {
+            $db = (new \Core\Database)->getInstance();
+            $stmt = $db->prepare("
+                SELECT id, nome, telefone, nuit, tipo_cliente
+                FROM clientes
+                WHERE nome LIKE :q
+                ORDER BY nome ASC
+                LIMIT 20
+            ");
+            $stmt->execute([':q' => "%{$q}%"]);
+            echo json_encode($stmt->fetchAll(\PDO::FETCH_ASSOC), JSON_UNESCAPED_UNICODE);
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['erro' => $e->getMessage()]);
+            exit;
+        }
     }
 
-    try {
-
-        $db = (new \Core\Database)->getInstance();
-
-        $stmt = $db->prepare("
-            SELECT
-                id,
-                nome,
-                telefone,
-                nuit
-            FROM clientes
-            WHERE nome LIKE :q
-            ORDER BY nome ASC
-            LIMIT 20
-        ");
-
-        $stmt->execute([
-            ':q' => "%{$q}%"
-        ]);
-
-        echo json_encode(
-            $stmt->fetchAll(PDO::FETCH_ASSOC),
-            JSON_UNESCAPED_UNICODE
-        );
-
-        exit;
-
-    } catch (\Throwable $e) {
-
-        http_response_code(500);
-
-        echo json_encode([
-            'erro' => $e->getMessage()
-        ]);
-
-        exit;
-    }
-}
-
-    // ================================================================
-    // POST /clientes/{id}/editar
-    // ================================================================
     public function update(string $id): void
     {
         $this->verificarCsrf();
@@ -218,9 +174,6 @@ class ClienteController
         exit;
     }
 
-    // ================================================================
-    // GET /api/clientes/pesquisar?q=…  — AJAX para balcão de vendas
-    // ================================================================
     public function pesquisar(): void
     {
         $q = trim($_GET['q'] ?? '');
@@ -228,26 +181,44 @@ class ClienteController
         View::json(['clientes' => $this->model->pesquisarParaVenda($q, 8)]);
     }
 
-    // ----------------------------------------------------------------
     private function validar(array $post, int $excluirId = 0): array
     {
+        $tipo = in_array($post['tipo_cliente'] ?? '', ['singular','instituicao'])
+              ? $post['tipo_cliente']
+              : 'singular';
+
         $dados = [
+            'tipo_cliente'    => $tipo,
             'nome'            => trim($post['nome']            ?? ''),
             'nuit'            => trim($post['nuit']            ?? '') ?: null,
             'bi'              => trim($post['bi']              ?? '') ?: null,
             'telefone'        => trim($post['telefone']        ?? '') ?: null,
+            'telefone2'       => trim($post['telefone2']       ?? '') ?: null,
             'email'           => trim($post['email']           ?? '') ?: null,
             'endereco'        => trim($post['endereco']        ?? '') ?: null,
-            'data_nascimento' => $post['data_nascimento']       ?? null ?: null,
-            'sexo'            => $post['sexo']                  ?? null ?: null,
             'observacoes'     => trim($post['observacoes']     ?? '') ?: null,
             'ativo'           => isset($post['ativo']) ? 1 : 0,
+            // singular
+            'data_nascimento' => $post['data_nascimento'] ?? null ?: null,
+            'sexo'            => $post['sexo']            ?? null ?: null,
+            // instituição
+            'nome_comercial'  => trim($post['nome_comercial']  ?? '') ?: null,
+            'sector'          => trim($post['sector']          ?? '') ?: null,
+            'pessoa_contacto' => trim($post['pessoa_contacto'] ?? '') ?: null,
         ];
 
         $erros = [];
-        if (strlen($dados['nome']) < 2) $erros['nome'] = 'Nome obrigatório (mínimo 2 caracteres).';
+        if (strlen($dados['nome']) < 2) {
+            $erros['nome'] = $tipo === 'instituicao'
+                ? 'Nome/Razão Social obrigatório (mínimo 2 caracteres).'
+                : 'Nome obrigatório (mínimo 2 caracteres).';
+        }
         if ($dados['email'] && !filter_var($dados['email'], FILTER_VALIDATE_EMAIL)) {
             $erros['email'] = 'Email inválido.';
+        }
+        // NUIT obrigatório para instituição
+        if ($tipo === 'instituicao' && empty($dados['nuit'])) {
+            $erros['nuit'] = 'NUIT obrigatório para instituições.';
         }
 
         return [$dados, $erros];

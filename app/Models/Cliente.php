@@ -8,17 +8,19 @@ class Cliente extends BaseModel
 {
     protected string $table = 'clientes';
 
-    public function listar(string $pesquisa = '', string $status = '', int $page = 1, int $perPage = 20): array
+    public function listar(string $pesquisa = '', string $status = '', string $tipo = '', int $page = 1, int $perPage = 20): array
     {
         $where  = ['1=1'];
         $params = [];
 
         if ($pesquisa !== '') {
-            $where[]        = '(c.nome LIKE :pesq OR c.telefone LIKE :pesq OR c.nuit LIKE :pesq OR c.bi LIKE :pesq OR c.email LIKE :pesq)';
+            $where[]        = '(c.nome LIKE :pesq OR c.telefone LIKE :pesq OR c.nuit LIKE :pesq OR c.bi LIKE :pesq OR c.email LIKE :pesq OR c.nome_comercial LIKE :pesq OR c.pessoa_contacto LIKE :pesq)';
             $params['pesq'] = '%' . $pesquisa . '%';
         }
         if ($status === 'activo')   { $where[] = 'c.ativo = 1'; }
         if ($status === 'inactivo') { $where[] = 'c.ativo = 0'; }
+        if ($tipo === 'singular')    { $where[] = "(c.tipo_cliente = 'singular' OR c.tipo_cliente IS NULL)"; }
+        if ($tipo === 'instituicao') { $where[] = "c.tipo_cliente = 'instituicao'"; }
 
         $whereStr = implode(' AND ', $where);
         $offset   = ($page - 1) * $perPage;
@@ -102,7 +104,12 @@ class Cliente extends BaseModel
     public function estatisticas(): array
     {
         $est = $this->db->query("
-            SELECT COUNT(*) AS total, SUM(ativo=1) AS activos, SUM(ativo=0) AS inactivos
+            SELECT
+                COUNT(*)                                           AS total,
+                SUM(ativo=1)                                       AS activos,
+                SUM(ativo=0)                                       AS inactivos,
+                SUM(tipo_cliente='singular'  OR tipo_cliente IS NULL) AS total_singular,
+                SUM(tipo_cliente='instituicao')                    AS total_instituicao
             FROM clientes
         ")->fetch();
         $est['novos_mes'] = (int) $this->db->query("
@@ -115,10 +122,10 @@ class Cliente extends BaseModel
     public function pesquisarParaVenda(string $q, int $limit = 8): array
     {
         $stmt = $this->db->prepare("
-            SELECT id, nome, telefone, nuit, bi, email
+            SELECT id, nome, telefone, nuit, bi, email, tipo_cliente
             FROM clientes
             WHERE ativo = 1
-              AND (nome LIKE :q OR telefone LIKE :q OR nuit LIKE :q OR bi LIKE :q)
+              AND (nome LIKE :q OR telefone LIKE :q OR nuit LIKE :q OR bi LIKE :q OR nome_comercial LIKE :q)
             ORDER BY nome LIMIT $limit
         ");
         $stmt->execute(['q' => '%' . $q . '%']);
