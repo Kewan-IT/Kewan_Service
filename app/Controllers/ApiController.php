@@ -62,6 +62,7 @@ class ApiController
 
         $stmt = $db->prepare("
             SELECT l.id, l.numero_lote, l.validade, l.quantidade,
+                   l.em_promocao, l.preco_promocional,
                    DATEDIFF(l.validade, CURDATE()) AS dias_para_vencer,
                    CASE
                      WHEN DATEDIFF(l.validade, CURDATE()) <= 30 THEN 'critico'

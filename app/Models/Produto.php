@@ -147,7 +147,11 @@ class Produto extends BaseModel
                 p.unidade_compra, p.unidade_venda, p.fator_conversao,
                 c.nome AS categoria,
                 (SELECT MIN(l.validade) FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0) AS proxima_validade,
-                (SELECT l.id FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS lote_id
+                (SELECT l.id FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS lote_id,
+                (SELECT l.numero_lote FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS numero_lote,
+                (SELECT l.em_promocao FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS lote_em_promocao,
+                (SELECT l.preco_promocional FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS lote_preco_promocional,
+                (SELECT l.quantidade FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0 ORDER BY l.validade ASC LIMIT 1) AS lote_quantidade
             FROM produtos p
             JOIN categorias c ON c.id = p.categoria_id
             WHERE p.ativo = 1

@@ -171,6 +171,7 @@ if ($valorRisco > 0):
             <th class="text-center" style="width:100px">Dias</th>
             <th class="text-end"    style="width:120px">Valor Risco</th>
             <th class="text-center" style="width:110px">Acção Sugerida</th>
+            <th class="text-center" style="width:170px">Acções</th>
           </tr>
         </thead>
         <tbody>
@@ -207,7 +208,14 @@ if ($valorRisco > 0):
             </td>
             <td class="text-muted"><?= htmlspecialchars($l['categoria_nome']) ?></td>
             <td class="text-muted"><?= htmlspecialchars($l['fornecedor_nome'] ?? '—') ?></td>
-            <td class="text-center fw-semibold"><?= htmlspecialchars($l['numero_lote']) ?></td>
+            <td class="text-center fw-semibold">
+              <?= htmlspecialchars($l['numero_lote']) ?>
+              <?php if (!empty($l['em_promocao'])): ?>
+              <div class="badge bg-success mt-1" style="font-size:9px">
+                Promoção: <?= number_format($l['preco_promocional'], 2, ',', '.') ?> MZN
+              </div>
+              <?php endif; ?>
+            </td>
             <td class="text-center fw-bold"><?= $l['quantidade'] ?></td>
             <td class="text-center"><?= date('d/m/Y', strtotime($l['validade'])) ?></td>
             <td class="text-center"><?= $diasStr ?></td>
@@ -215,7 +223,120 @@ if ($valorRisco > 0):
               <?= number_format($l['valor_em_risco'], 2, ',', '.') ?> MZN
             </td>
             <td class="text-center"><?= $accao ?></td>
+            <td class="text-center">
+              <div class="d-flex gap-1 justify-content-center">
+                <?php if (!empty($l['em_promocao'])): ?>
+                <form method="POST" action="<?= $APP ?>/lotes/<?= $l['id'] ?>/promocao/cancelar" class="d-inline">
+                  <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                  <input type="hidden" name="voltar_para" value="<?= htmlspecialchars($APP . '/relatorios/lotes-a-vencer?' . http_build_query($_GET)) ?>">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary" style="font-size:10px"
+                          onclick="return confirm('Cancelar a promoção deste lote?')">
+                    <i class="bi bi-x-circle"></i> Cancelar promo
+                  </button>
+                </form>
+                <?php else: ?>
+                <button type="button" class="btn btn-sm btn-outline-success" style="font-size:10px"
+                        data-bs-toggle="modal" data-bs-target="#modalPromocao<?= $l['id'] ?>">
+                  <i class="bi bi-tag"></i> Promoção
+                </button>
+                <?php endif; ?>
+                <button type="button" class="btn btn-sm btn-outline-danger" style="font-size:10px"
+                        data-bs-toggle="modal" data-bs-target="#modalDevolucao<?= $l['id'] ?>">
+                  <i class="bi bi-arrow-return-left"></i> Devolver
+                </button>
+              </div>
+            </td>
           </tr>
+
+          <!-- Modal: colocar este lote em promoção -->
+          <div class="modal fade" id="modalPromocao<?= $l['id'] ?>" tabindex="-1">
+            <div class="modal-dialog">
+              <form method="POST" action="<?= $APP ?>/lotes/<?= $l['id'] ?>/promocao" class="modal-content">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                <input type="hidden" name="voltar_para" value="<?= htmlspecialchars($APP . '/relatorios/lotes-a-vencer?' . http_build_query($_GET)) ?>">
+                <div class="modal-header">
+                  <h6 class="modal-title">
+                    <i class="bi bi-tag text-success me-1"></i>
+                    Colocar lote em Promoção
+                  </h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <p class="small text-muted mb-3">
+                    <?= htmlspecialchars($l['produto_nome']) ?> — Lote
+                    <strong><?= htmlspecialchars($l['numero_lote']) ?></strong>
+                    (<?= $l['quantidade'] ?> unid., validade <?= date('d/m/Y', strtotime($l['validade'])) ?>)
+                  </p>
+                  <p class="small text-muted">
+                    Este preço aplica-se <strong>apenas a este lote</strong>; os restantes lotes do
+                    mesmo produto mantêm o preço normal de
+                    <?= number_format($l['preco_venda'], 2, ',', '.') ?> MZN.
+                  </p>
+                  <div class="mb-3">
+                    <label class="form-label small">Preço promocional (MZN) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" min="0.01" max="<?= $l['preco_venda'] - 0.01 ?>"
+                           name="preco_promocional" class="form-control" required>
+                  </div>
+                  <div class="mb-1">
+                    <label class="form-label small">Motivo (opcional)</label>
+                    <input type="text" name="promocao_motivo" class="form-control"
+                           placeholder="Ex: Próximo da validade">
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="submit" class="btn btn-sm btn-success">Activar promoção</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Modal: devolução ao fornecedor deste lote -->
+          <div class="modal fade" id="modalDevolucao<?= $l['id'] ?>" tabindex="-1">
+            <div class="modal-dialog">
+              <form method="POST" action="<?= $APP ?>/lotes/<?= $l['id'] ?>/devolucao" class="modal-content">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                <input type="hidden" name="voltar_para" value="<?= htmlspecialchars($APP . '/relatorios/lotes-a-vencer?' . http_build_query($_GET)) ?>">
+                <div class="modal-header">
+                  <h6 class="modal-title">
+                    <i class="bi bi-arrow-return-left text-danger me-1"></i>
+                    Devolução ao Fornecedor
+                  </h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <p class="small text-muted mb-3">
+                    <?= htmlspecialchars($l['produto_nome']) ?> — Lote
+                    <strong><?= htmlspecialchars($l['numero_lote']) ?></strong>
+                    · Fornecedor: <?= htmlspecialchars($l['fornecedor_nome'] ?? '—') ?>
+                  </p>
+                  <div class="mb-3">
+                    <label class="form-label small">Quantidade a devolver <span class="text-danger">*</span></label>
+                    <input type="number" min="1" max="<?= $l['quantidade'] ?>" name="quantidade"
+                           class="form-control" required>
+                    <div class="form-text">Disponível neste lote: <?= $l['quantidade'] ?> unid.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small">Motivo</label>
+                    <select name="motivo" class="form-select">
+                      <option value="validade">Próximo da validade</option>
+                      <option value="vencido">Já vencido</option>
+                      <option value="avariado">Produto avariado</option>
+                      <option value="outro">Outro</option>
+                    </select>
+                  </div>
+                  <div class="mb-1">
+                    <label class="form-label small">Observações</label>
+                    <textarea name="observacoes" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="submit" class="btn btn-sm btn-danger">Registar devolução</button>
+                </div>
+              </form>
+            </div>
+          </div>
           <?php endforeach; ?>
         </tbody>
         <?php if ($valorRisco > 0): ?>
@@ -226,6 +347,7 @@ if ($valorRisco > 0):
               <?= number_format($valorRisco, 2, ',', '.') ?> MZN
             </td>
             <td></td>
+            <td></td>
           </tr>
         </tfoot>
         <?php endif; ?>
@@ -234,3 +356,9 @@ if ($valorRisco > 0):
     <?php endif; ?>
   </div>
 </div>
+
+<?php if (!empty($devolucao_pdf_id)): ?>
+<script>
+window.open('<?= $APP ?>/devolucoes/<?= (int)$devolucao_pdf_id ?>/pdf', '_blank');
+</script>
+<?php endif; ?>

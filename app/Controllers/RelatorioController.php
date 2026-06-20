@@ -119,17 +119,26 @@ class RelatorioController
         $tipo   = $_GET['tipo'] ?? 'proximos'; // proximos | vencidos | todos
         $cat    = $_GET['categoria_id'] ?? '';
 
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
         View::render('relatorios.lotes_vencer', [
-            'titulo'     => 'Lotes a Vencer',
-            'activePage' => 'relatorios',
-            'breadcrumb' => ['Relatórios' => '/relatorios', 'Lotes a Vencer' => null],
-            'prazo'      => $prazo,
-            'tipo'       => $tipo,
-            'categoria'  => $cat,
-            'resumo'     => $this->resumoLotes($prazo),
-            'lotes'      => $this->dadosLotes($prazo, $tipo, $cat),
-            'categorias' => $this->todasCategorias(),
+            'titulo'        => 'Lotes a Vencer',
+            'activePage'    => 'relatorios',
+            'breadcrumb'    => ['Relatórios' => '/relatorios', 'Lotes a Vencer' => null],
+            'prazo'         => $prazo,
+            'tipo'          => $tipo,
+            'categoria'     => $cat,
+            'resumo'        => $this->resumoLotes($prazo),
+            'lotes'         => $this->dadosLotes($prazo, $tipo, $cat),
+            'categorias'    => $this->todasCategorias(),
+            'csrf_token'    => $_SESSION['csrf_token'],
+            'flash_sucesso' => $_SESSION['flash_sucesso'] ?? null,
+            'flash_erro'    => $_SESSION['flash_erro']    ?? null,
+            'devolucao_pdf_id' => $_SESSION['devolucao_pdf_id'] ?? null,
         ]);
+        unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro'], $_SESSION['devolucao_pdf_id']);
     }
 
     // ================================================================
@@ -437,6 +446,7 @@ class RelatorioController
         $stmt = $this->db->prepare("
             SELECT
                 l.id, l.numero_lote, l.quantidade, l.validade, l.data_entrada,
+                l.em_promocao, l.preco_promocional,
                 DATEDIFF(l.validade, CURDATE()) AS dias_para_vencer,
                 p.id AS produto_id, p.nome AS produto_nome,
                 p.preco_venda, p.unidade_medida,

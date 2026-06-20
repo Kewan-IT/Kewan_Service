@@ -5,6 +5,7 @@ use App\Models\Venda;
 use App\Models\Produto;
 use App\Models\Cliente;
 use App\Models\Configuracao;
+use App\Models\Lote;
 use App\Middleware\AuthMiddleware;
 use Core\View;
 
@@ -13,6 +14,7 @@ class VendaController
     private Venda   $model;
     private Produto $produtoModel;
     private Cliente $clienteModel;
+    private Lote    $loteModel;
 
     public function __construct()
     {
@@ -20,6 +22,7 @@ class VendaController
         $this->model        = new Venda();
         $this->produtoModel = new Produto();
         $this->clienteModel = new Cliente();
+        $this->loteModel    = new Lote();
     }
 
     // ================================================================
@@ -140,19 +143,38 @@ class VendaController
                 exit;
             }
 
-            $precoUnit    = (float)$produto['preco_venda'];
-            $descontoItem = max(0, (float)($item['desconto_item'] ?? 0));
-            $subItem      = max(0, ($precoUnit * $qty) - $descontoItem);
+            $descontoItemTotal = max(0, (float)($item['desconto_item'] ?? 0));
+            $descontoAlocado   = 0;
+            $subItemTotal      = 0;
 
-            $itensFinal[] = [
-                'produto_id'     => (int)$produto['id'],
-                'lote_id'        => null, // FEFO resolve internamente
-                'quantidade'     => $qty,
-                'preco_unitario' => $precoUnit,
-                'desconto_item'  => $descontoItem,
-                'subtotal'       => $subItem,
-            ];
-            $subtotal += $subItem;
+            foreach ($alocs as $i => $aloc) {
+                $loteRow   = $this->loteModel->findById((int)$aloc['lote_id']);
+                $qLote     = (int)$aloc['quantidade'];
+
+                // Preço da promoção aplica-se SÓ a este lote específico,
+                // definido manualmente pelo utilizador na ficha do lote.
+                $precoUnit = (!empty($loteRow['em_promocao']) && (float)$loteRow['preco_promocional'] > 0)
+                    ? (float)$loteRow['preco_promocional']
+                    : (float)$produto['preco_venda'];
+
+                $descontoLote = ($i === array_key_last($alocs))
+                    ? round($descontoItemTotal - $descontoAlocado, 2)
+                    : round($descontoItemTotal * ($qLote / $qty), 2);
+                $descontoAlocado += $descontoLote;
+
+                $subLote = max(0, ($precoUnit * $qLote) - $descontoLote);
+                $subItemTotal += $subLote;
+
+                $itensFinal[] = [
+                    'produto_id'     => (int)$produto['id'],
+                    'lote_id'        => (int)$aloc['lote_id'], // alocação explícita, já resolvida aqui
+                    'quantidade'     => $qLote,
+                    'preco_unitario' => $precoUnit,
+                    'desconto_item'  => $descontoLote,
+                    'subtotal'       => $subLote,
+                ];
+            }
+            $subtotal += $subItemTotal;
         }
 
         $desconto       = max(0, (float)($_POST['desconto'] ?? 0));

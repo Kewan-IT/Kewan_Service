@@ -140,8 +140,9 @@ class ProdutoController
             'movimentos' => $movimentos,
             'flash_sucesso' => $_SESSION['flash_sucesso'] ?? null,
             'flash_erro'    => $_SESSION['flash_erro']    ?? null,
+            'devolucao_pdf_id' => $_SESSION['devolucao_pdf_id'] ?? null,
         ]);
-        unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro']);
+        unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro'], $_SESSION['devolucao_pdf_id']);
     }
 
     // ================================================================

@@ -30,6 +30,12 @@ $router->get('/produtos/{id}/editar',  ['ProdutoController', 'edit']);
 $router->post('/produtos/{id}/editar', ['ProdutoController', 'update']);
 $router->post('/produtos/{id}/lote',   ['ProdutoController', 'adicionarLote']);
 
+// Promoção e devolução por LOTE específico
+$router->post('/lotes/{id}/promocao',          ['LoteController', 'ativarPromocao']);
+$router->post('/lotes/{id}/promocao/cancelar', ['LoteController', 'cancelarPromocao']);
+$router->post('/lotes/{id}/devolucao',         ['LoteController', 'devolucao']);
+$router->get('/devolucoes/{id}/pdf',           ['LoteController', 'devolucaoPdf']);
+
 // ── Clientes ─────────────────────────────────────────────────────
 $router->get('/clientes',              ['ClienteController', 'index']);
 $router->get('/clientes/novo',         ['ClienteController', 'create']);

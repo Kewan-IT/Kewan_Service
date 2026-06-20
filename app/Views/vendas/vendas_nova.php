@@ -316,6 +316,11 @@ async function pesquisarProduto(q) {
         const dias = Math.round((new Date(p.proxima_validade) - new Date()) / 86400000);
         loteHtml = badgeLote(dias, p.numero_lote || 'FEFO');
       }
+      const emPromo = (p.lote_em_promocao == 1 || p.lote_em_promocao === true) && p.lote_preco_promocional;
+      const precoHtml = emPromo
+        ? `<span style="text-decoration:line-through;color:#9ca3af;font-size:10px">${formatMZN(p.preco_venda)}</span>
+           <div class="fw-bold text-success" style="font-size:13px">${formatMZN(p.lote_preco_promocional)} <span class="badge bg-success" style="font-size:8px">PROMO</span></div>`
+        : `<div class="fw-bold text-success" style="font-size:13px">${formatMZN(p.preco_venda)}</div>`;
       return `
       <div class="produto-resultado" data-produto-id="${p.id}">
         <div class="d-flex justify-content-between align-items-start">
@@ -326,7 +331,7 @@ async function pesquisarProduto(q) {
             <div class="lote-info">${escHtml(p.categoria_nome || p.categoria || '')} ${loteHtml}</div>
           </div>
           <div class="text-end">
-            <div class="fw-bold text-success" style="font-size:13px">${formatMZN(p.preco_venda)}</div>
+            ${precoHtml}
             <div class="text-muted" style="font-size:11px">Stock: ${p.estoque_actual}</div>
           </div>
         </div>
@@ -342,6 +347,20 @@ async function pesquisarProduto(q) {
 
     div.classList.remove('d-none');
   } catch(e) { console.error(e); }
+}
+
+// ── Preço efectivo de um item, considerando promoção do lote FEFO ──
+// Se o lote do topo (mais antigo) estiver em promoção, aplica esse preço
+// até esgotar a quantidade DESSE lote; o excedente paga o preço normal.
+function precoEfetivoItem(item) {
+  const l = item.lote_info;
+  if (l && (l.em_promocao == 1 || l.em_promocao === true) && l.preco_promocional) {
+    const qtdPromo  = Math.min(item.quantidade, l.quantidade);
+    const qtdNormal = Math.max(0, item.quantidade - qtdPromo);
+    const total = (qtdPromo * parseFloat(l.preco_promocional)) + (qtdNormal * item.preco_normal);
+    return total / item.quantidade;
+  }
+  return item.preco_normal;
 }
 
 // ── Adicionar ao carrinho com info de lote FEFO ──
@@ -361,7 +380,7 @@ async function adicionarAoCarrinho(produto) {
       alert(`Stock insuficiente. Disponível: ${produto.estoque_actual}`);
     }
   } else {
-    // Buscar lotes disponíveis para mostrar info FEFO
+    // Buscar lotes disponíveis para mostrar info FEFO (e eventual promoção)
     let loteInfo = null;
     try {
       const r = await fetch(`${APP_URL}/api/produtos/${produto.id}/lotes`);
@@ -371,17 +390,19 @@ async function adicionarAoCarrinho(produto) {
       }
     } catch(e) { /* ignora erro de rede */ }
 
-    carrinho.push({
+    const novoItem = {
       produto_id:       produto.id,
       nome:             produto.nome,
-      preco_unitario:   parseFloat(produto.preco_venda),
+      preco_normal:     parseFloat(produto.preco_venda),
       quantidade:       1,
       desconto_item:    0,
-      subtotal:         parseFloat(produto.preco_venda),
       estoque_max:      produto.estoque_actual,
       requer_receita:   produto.requer_receita,
-      lote_info:        loteInfo, // {numero_lote, validade, dias_para_vencer, status_validade}
-    });
+      lote_info:        loteInfo, // {id, numero_lote, validade, dias_para_vencer, em_promocao, preco_promocional, quantidade}
+    };
+    novoItem.preco_unitario = precoEfetivoItem(novoItem);
+    novoItem.subtotal       = novoItem.preco_unitario * novoItem.quantidade;
+    carrinho.push(novoItem);
   }
 
   renderCarrinho();
@@ -389,6 +410,7 @@ async function adicionarAoCarrinho(produto) {
 
 function recalcularItem(idx) {
   const item = carrinho[idx];
+  item.preco_unitario = precoEfetivoItem(item);
   item.subtotal = (item.preco_unitario * item.quantidade) - item.desconto_item;
   item.subtotal = Math.max(0, item.subtotal);
 }
@@ -421,17 +443,25 @@ function renderCarrinho() {
   tbody.innerHTML = carrinho.map((item, idx) => {
     // Info do lote FEFO
     let loteHtml = '<span style="color:#9ca3af;font-size:10px">Sem lote registado</span>';
+    let promoHtml = '';
     if (item.lote_info) {
       const l = item.lote_info;
       const dataFmt = l.validade ? new Date(l.validade).toLocaleDateString('pt-MZ') : '';
       loteHtml = badgeLote(l.dias_para_vencer, l.numero_lote) +
         (dataFmt ? `<span style="color:#9ca3af;font-size:10px"> Val: ${dataFmt}</span>` : '');
+      if (l.em_promocao == 1 || l.em_promocao === true) {
+        promoHtml = `<span class="badge bg-success" style="font-size:9px">PROMO</span>`;
+      }
     }
+    const precoCell = promoHtml
+      ? `<span style="text-decoration:line-through;color:#9ca3af;font-size:11px">${formatMZN(item.preco_normal)}</span><br>${formatMZN(item.preco_unitario)}`
+      : formatMZN(item.preco_unitario);
     return `
     <tr>
       <td class="ps-3">
         <div class="fw-semibold" style="font-size:13px">${escHtml(item.nome)}
           ${item.requer_receita ? '<span class="badge-receita ms-1">RX</span>' : ''}
+          ${promoHtml}
         </div>
         <div class="lote-info">${loteHtml}</div>
       </td>
@@ -447,7 +477,7 @@ function renderCarrinho() {
                   onclick="alterarQty(${idx}, 1)">+</button>
         </div>
       </td>
-      <td class="text-end" style="font-size:13px">${formatMZN(item.preco_unitario)}</td>
+      <td class="text-end" style="font-size:13px">${precoCell}</td>
       <td class="text-end fw-semibold text-success" style="font-size:14px">${formatMZN(item.subtotal)}</td>
       <td>
         <button type="button" class="btn btn-sm btn-outline-danger"
