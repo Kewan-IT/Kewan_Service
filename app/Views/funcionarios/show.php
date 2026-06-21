@@ -53,6 +53,10 @@ $perfilMap = [
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap">
+    <a href="<?= $APP ?>/funcionarios/<?= $f['id'] ?>/contrato" target="_blank"
+       class="btn btn-sm btn-outline-success">
+      <i class="bi bi-file-earmark-text me-1"></i>Contrato de Trabalho
+    </a>
     <?php if ($isAdmin): ?>
     <a href="<?= $APP ?>/funcionarios/<?= $f['id'] ?>/editar"
        class="btn btn-sm btn-outline-secondary">
@@ -404,3 +408,9 @@ $perfilMap = [
 
   </div><!-- /col lateral -->
 </div>
+
+<?php if (!empty($abrir_contrato)): ?>
+<script>
+window.open('<?= $APP ?>/funcionarios/<?= $f['id'] ?>/contrato', '_blank');
+</script>
+<?php endif; ?>

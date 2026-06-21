@@ -27,12 +27,13 @@ class ProdutoController
     // ================================================================
     public function index(): void
     {
-        $pesquisa  = trim($_GET['q']       ?? '');
-        $categoria = (int)($_GET['cat']    ?? 0);
-        $filtro    = $_GET['filtro']        ?? '';
-        $page      = max(1, (int)($_GET['page'] ?? 1));
+        $pesquisa   = trim($_GET['q']          ?? '');
+        $categoria  = (int)($_GET['cat']       ?? 0);
+        $filtro     = $_GET['filtro']           ?? '';
+        $fornecedor = (int)($_GET['fornecedor'] ?? 0);
+        $page       = max(1, (int)($_GET['page'] ?? 1));
 
-        $paginacao  = $this->model->listar($pesquisa, $categoria, $filtro, $page, 24);
+        $paginacao  = $this->model->listar($pesquisa, $categoria, $filtro, $page, 24, $fornecedor);
         $categorias = $this->catModel->arvore();
         $stats      = $this->model->estatisticas();
 
@@ -42,14 +43,66 @@ class ProdutoController
             'breadcrumb' => ['Produtos' => null],
             'paginacao'  => $paginacao,
             'categorias' => $categorias,
+            'fornecedores' => $this->fornecedores(),
             'stats'      => $stats,
             'pesquisa'   => $pesquisa,
             'categoria'  => $categoria,
             'filtro'     => $filtro,
+            'fornecedor' => $fornecedor,
             'flash_sucesso' => $_SESSION['flash_sucesso'] ?? null,
             'flash_erro'    => $_SESSION['flash_erro']    ?? null,
         ]);
         unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro']);
+    }
+
+    // ================================================================
+    // GET /produtos/pdf — listagem completa em PDF, com os mesmos
+    // filtros aplicados na tela (pesquisa, categoria, filtro rápido)
+    // ================================================================
+    public function pdf(): void
+    {
+        $pesquisa   = trim($_GET['q']          ?? '');
+        $categoria  = (int)($_GET['cat']       ?? 0);
+        $filtro     = $_GET['filtro']           ?? '';
+        $fornecedor = (int)($_GET['fornecedor'] ?? 0);
+
+        $produtos = $this->model->listarParaPdf($pesquisa, $categoria, $filtro, $fornecedor);
+        $config   = (new \App\Models\Configuracao())->getAllWithDefaults();
+
+        $filtroLabels = [
+            'stock_baixo' => 'Stock baixo',
+            'sem_stock'   => 'Sem stock',
+            'receita'     => 'Requer receita',
+            'controlado'  => 'Controlado',
+        ];
+
+        $fornecedorNome = null;
+        if ($fornecedor > 0) {
+            $stmtF = $this->db()->prepare("SELECT nome FROM fornecedores WHERE id = :id");
+            $stmtF->execute(['id' => $fornecedor]);
+            $fornecedorNome = $stmtF->fetchColumn() ?: null;
+        }
+
+        extract([
+            'produtos'     => $produtos,
+            'config'       => $config,
+            'appUrl'       => $_ENV['APP_URL'] ?? '',
+            'pesquisa'     => $pesquisa,
+            'filtroLabel'  => $filtroLabels[$filtro] ?? null,
+            'fornecedorNome' => $fornecedorNome,
+            'usuarioNome'  => $_SESSION['usuario_nome'] ?? '',
+        ]);
+        require __DIR__ . '/../../app/Views/produtos/produtos_pdf.php';
+        exit;
+    }
+
+    // ================================================================
+    // GET /api/produtos/gerar-codigo-barras — pré-visualização do
+    // próximo código automático (usado no formulário de novo produto)
+    // ================================================================
+    public function gerarCodigoBarrasPreview(): void
+    {
+        View::json(['codigo' => $this->model->gerarCodigoBarras()]);
     }
 
     // ================================================================
@@ -88,6 +141,12 @@ class ProdutoController
         if ($erros) {
             $this->renderForm('criar', $dados, $erros);
             return;
+        }
+
+        // Código de barras automático — gerado pelo sistema quando o
+        // utilizador não preenche manualmente (ex: produto sem rótulo próprio)
+        if (empty($dados['codigo_barras'])) {
+            $dados['codigo_barras'] = $this->model->gerarCodigoBarras();
         }
 
         // Upload imagem

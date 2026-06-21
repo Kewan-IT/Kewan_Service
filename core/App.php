@@ -13,8 +13,11 @@ class App {
         session_name($_ENV['SESSION_NAME'] ?? 'kewanfarma');
         session_start();
 
-        // Fuso horário
-        date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'Africa/Maputo');
+        // Fuso horário — usa o fuso configurado em .env (APP_TIMEZONE) se existir;
+        // caso contrário usa o fuso horário do próprio servidor/máquina (date.timezone do php.ini)
+        if (!empty($_ENV['APP_TIMEZONE'])) {
+            date_default_timezone_set($_ENV['APP_TIMEZONE']);
+        }
 
         // Carrega rotas e despacha
         $router = new Router();

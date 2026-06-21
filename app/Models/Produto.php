@@ -11,24 +11,26 @@ class Produto extends BaseModel
     // ----------------------------------------------------------------
     // Listagem paginada com filtros
     // ----------------------------------------------------------------
-    public function listar(
-        string $pesquisa   = '',
-        int    $categoria  = 0,
-        string $filtro     = '',
-        int    $page       = 1,
-        int    $perPage    = 24
-    ): array {
+    private function montarFiltro(string $pesquisa, int $categoria, string $filtro, int $fornecedor = 0): array
+    {
         $where  = ['p.ativo = 1'];
         $params = [];
 
         if ($pesquisa !== '') {
-            $where[]        = '(p.nome LIKE :pesq OR p.codigo_barras LIKE :pesq OR p.principio_ativo LIKE :pesq)';
-            $params['pesq'] = '%' . $pesquisa . '%';
+            $where[]         = '(p.nome LIKE :pesq1 OR p.codigo_barras LIKE :pesq2 OR p.principio_ativo LIKE :pesq3)';
+            $params['pesq1'] = '%' . $pesquisa . '%';
+            $params['pesq2'] = '%' . $pesquisa . '%';
+            $params['pesq3'] = '%' . $pesquisa . '%';
         }
         if ($categoria > 0) {
             // inclui subcategorias
-            $where[]             = '(p.categoria_id = :cat OR c.categoria_pai_id = :cat)';
-            $params['cat']       = $categoria;
+            $where[]          = '(p.categoria_id = :cat1 OR c.categoria_pai_id = :cat2)';
+            $params['cat1']   = $categoria;
+            $params['cat2']   = $categoria;
+        }
+        if ($fornecedor > 0) {
+            $where[]               = 'p.fornecedor_id = :fornecedor';
+            $params['fornecedor']  = $fornecedor;
         }
         if ($filtro === 'stock_baixo') {
             $where[] = 'p.estoque_actual < p.estoque_min';
@@ -40,7 +42,18 @@ class Produto extends BaseModel
             $where[] = 'p.controlado = 1';
         }
 
-        $whereStr = implode(' AND ', $where);
+        return [implode(' AND ', $where), $params];
+    }
+
+    public function listar(
+        string $pesquisa   = '',
+        int    $categoria  = 0,
+        string $filtro     = '',
+        int    $page       = 1,
+        int    $perPage    = 24,
+        int    $fornecedor = 0
+    ): array {
+        [$whereStr, $params] = $this->montarFiltro($pesquisa, $categoria, $filtro, $fornecedor);
         $offset   = ($page - 1) * $perPage;
 
         $stmtCount = $this->db->prepare("
@@ -76,6 +89,57 @@ class Produto extends BaseModel
             'current_page' => $page,
             'last_page'    => max(1, (int) ceil($total / $perPage)),
         ];
+    }
+
+    // ----------------------------------------------------------------
+    // Listagem completa (sem paginação) para exportação em PDF —
+    // respeita os mesmos filtros usados na listagem normal
+    // ----------------------------------------------------------------
+    public function listarParaPdf(string $pesquisa = '', int $categoria = 0, string $filtro = '', int $fornecedor = 0): array
+    {
+        [$whereStr, $params] = $this->montarFiltro($pesquisa, $categoria, $filtro, $fornecedor);
+
+        $stmt = $this->db->prepare("
+            SELECT
+                p.*,
+                c.nome AS categoria_nome,
+                f.nome AS fornecedor_nome,
+                (p.estoque_actual < p.estoque_min) AS stock_baixo,
+                (SELECT MIN(l.validade) FROM lotes l WHERE l.produto_id = p.id AND l.quantidade > 0) AS proxima_validade
+            FROM produtos p
+            JOIN categorias c       ON c.id = p.categoria_id
+            LEFT JOIN fornecedores f ON f.id = p.fornecedor_id
+            WHERE $whereStr
+            ORDER BY c.nome, p.nome
+        ");
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    // ----------------------------------------------------------------
+    // Gerar código de barras automático (EAN-13), garantindo unicidade.
+    // Usa o prefixo 200 (faixa reservada para uso interno/loja) +
+    // sequencial baseado no próximo ID + dígitos aleatórios + dígito
+    // verificador, para nunca colidir com códigos reais de fabricantes.
+    // ----------------------------------------------------------------
+    public function gerarCodigoBarras(): string
+    {
+        do {
+            $base = '200' . str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT);
+            $codigo = $base . $this->digitoVerificadorEan13($base);
+        } while ($this->codigoBarrasExiste($codigo));
+
+        return $codigo;
+    }
+
+    private function digitoVerificadorEan13(string $doze): string
+    {
+        $soma = 0;
+        for ($i = 0; $i < 12; $i++) {
+            $soma += (int)$doze[$i] * (($i % 2 === 0) ? 1 : 3);
+        }
+        $resto = $soma % 10;
+        return (string) (($resto === 0) ? 0 : 10 - $resto);
     }
 
     // ----------------------------------------------------------------

@@ -65,10 +65,25 @@ function selP(array $p, string $k, $v): string { return ($p[$k] ?? '') == $v ? '
                    value="<?= oldP($p,'principio_ativo') ?>" placeholder="ex: Amoxicilina">
           </div>
           <div class="col-sm-6">
-            <label class="form-label small">Código de barras</label>
-            <input type="text" name="codigo_barras" class="form-control form-control-sm <?= isset($e['codigo_barras']) ? 'is-invalid':'' ?>"
-                   value="<?= oldP($p,'codigo_barras') ?>" placeholder="EAN-13 ou outro">
-            <?php if (isset($e['codigo_barras'])): ?><div class="invalid-feedback"><?= $e['codigo_barras'] ?></div><?php endif; ?>
+            <label class="form-label small">
+              Código de barras
+              <span class="text-muted" style="font-weight:400">(gerado automaticamente)</span>
+            </label>
+            <div class="input-group input-group-sm">
+              <input type="text" id="campo-codigo-barras" name="codigo_barras"
+                     class="form-control form-control-sm <?= isset($e['codigo_barras']) ? 'is-invalid':'' ?>"
+                     value="<?= oldP($p,'codigo_barras') ?>" placeholder="Gerado ao guardar...">
+              <?php if ($modo === 'criar'): ?>
+              <button type="button" class="btn btn-outline-secondary" id="btn-gerar-codigo" title="Gerar novo código">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+              <?php endif; ?>
+            </div>
+            <?php if (isset($e['codigo_barras'])): ?><div class="invalid-feedback d-block"><?= $e['codigo_barras'] ?></div><?php endif; ?>
+            <div class="form-text">
+              Deixe em branco para o sistema gerar automaticamente, ou apague e digite/leia
+              um código próprio (ex: código de barras impresso na embalagem).
+            </div>
           </div>
           <div class="col-12">
             <label class="form-label small">Descrição</label>
@@ -387,4 +402,22 @@ function previewImagem(input) {
   };
   reader.readAsDataURL(input.files[0]);
 }
+
+<?php if ($modo === 'criar'): ?>
+// ── Código de barras automático ──
+async function gerarCodigoBarras() {
+  const campo = document.getElementById('campo-codigo-barras');
+  try {
+    const r = await fetch('<?= $APP ?>/api/produtos/gerar-codigo-barras');
+    const json = await r.json();
+    if (json.codigo) campo.value = json.codigo;
+  } catch (e) { /* se falhar, o backend gera ao guardar */ }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const campo = document.getElementById('campo-codigo-barras');
+  if (campo && !campo.value) gerarCodigoBarras();
+  const btn = document.getElementById('btn-gerar-codigo');
+  if (btn) btn.addEventListener('click', gerarCodigoBarras);
+});
+<?php endif; ?>
 </script>

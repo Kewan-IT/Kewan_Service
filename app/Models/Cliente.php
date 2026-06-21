@@ -14,8 +14,15 @@ class Cliente extends BaseModel
         $params = [];
 
         if ($pesquisa !== '') {
-            $where[]        = '(c.nome LIKE :pesq OR c.telefone LIKE :pesq OR c.nuit LIKE :pesq OR c.bi LIKE :pesq OR c.email LIKE :pesq OR c.nome_comercial LIKE :pesq OR c.pessoa_contacto LIKE :pesq)';
-            $params['pesq'] = '%' . $pesquisa . '%';
+            $where[] = '(c.nome LIKE :pesq1 OR c.telefone LIKE :pesq2 OR c.nuit LIKE :pesq3 OR c.bi LIKE :pesq4 OR c.email LIKE :pesq5 OR c.nome_comercial LIKE :pesq6 OR c.pessoa_contacto LIKE :pesq7)';
+            $like = '%' . $pesquisa . '%';
+            $params['pesq1'] = $like;
+            $params['pesq2'] = $like;
+            $params['pesq3'] = $like;
+            $params['pesq4'] = $like;
+            $params['pesq5'] = $like;
+            $params['pesq6'] = $like;
+            $params['pesq7'] = $like;
         }
         if ($status === 'activo')   { $where[] = 'c.ativo = 1'; }
         if ($status === 'inactivo') { $where[] = 'c.ativo = 0'; }
@@ -125,10 +132,11 @@ class Cliente extends BaseModel
             SELECT id, nome, telefone, nuit, bi, email, tipo_cliente
             FROM clientes
             WHERE ativo = 1
-              AND (nome LIKE :q OR telefone LIKE :q OR nuit LIKE :q OR bi LIKE :q OR nome_comercial LIKE :q)
+              AND (nome LIKE :q1 OR telefone LIKE :q2 OR nuit LIKE :q3 OR bi LIKE :q4 OR nome_comercial LIKE :q5)
             ORDER BY nome LIMIT $limit
         ");
-        $stmt->execute(['q' => '%' . $q . '%']);
+        $like = '%' . $q . '%';
+        $stmt->execute(['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like, 'q5' => $like]);
         return $stmt->fetchAll();
     }
 

@@ -12,8 +12,6 @@
  * Para editar o crontab manualmente: crontab -e
  */
 
-date_default_timezone_set('Africa/Maputo');
-
 // Carregar variáveis de ambiente
 $envFile = __DIR__ . '/.env';
 if (file_exists($envFile)) {
@@ -24,6 +22,12 @@ if (file_exists($envFile)) {
             $_ENV[trim($key)] = trim($value, '"\'');
         }
     }
+}
+
+// Fuso horário — usa o fuso configurado em .env (APP_TIMEZONE) se existir;
+// caso contrário usa o fuso horário do próprio servidor/máquina
+if (!empty($_ENV['APP_TIMEZONE'])) {
+    date_default_timezone_set($_ENV['APP_TIMEZONE']);
 }
 
 require_once __DIR__ . '/vendor/autoload.php';

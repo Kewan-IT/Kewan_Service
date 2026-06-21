@@ -24,11 +24,17 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
     </h1>
     <p class="text-muted small mb-0 mt-1">Catálogo farmacêutico</p>
   </div>
-  <?php if ($isEdit): ?>
-  <a href="<?= $APP ?>/produtos/novo" class="btn btn-sm" style="background:var(--kf-primary);color:#fff;border:none">
-    <i class="bi bi-plus-lg me-1"></i>Novo Produto
-  </a>
-  <?php endif; ?>
+  <div class="d-flex gap-2">
+    <a href="<?= $APP ?>/produtos/pdf?<?= http_build_query(['q' => $pesquisa, 'cat' => $categoria, 'fornecedor' => $fornecedor, 'filtro' => $filtro]) ?>"
+       target="_blank" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
+    </a>
+    <?php if ($isEdit): ?>
+    <a href="<?= $APP ?>/produtos/novo" class="btn btn-sm" style="background:var(--kf-primary);color:#fff;border:none">
+      <i class="bi bi-plus-lg me-1"></i>Novo Produto
+    </a>
+    <?php endif; ?>
+  </div>
 </div>
 
 <!-- Stats -->
@@ -68,7 +74,7 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body p-3">
     <form method="GET" action="<?= $APP ?>/produtos" class="row g-2 align-items-end">
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-3">
         <label class="form-label small mb-1 text-muted">Pesquisar</label>
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
@@ -77,7 +83,7 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
                  value="<?= htmlspecialchars($pesquisa) ?>">
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
         <label class="form-label small mb-1 text-muted">Categoria</label>
         <select name="cat" class="form-select form-select-sm">
           <option value="0">Todas</option>
@@ -88,7 +94,18 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1 text-muted">Fornecedor</label>
+        <select name="fornecedor" class="form-select form-select-sm">
+          <option value="0">Todos</option>
+          <?php foreach ($fornecedores as $f): ?>
+          <option value="<?= $f['id'] ?>" <?= $fornecedor === (int)$f['id'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($f['nome']) ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
         <label class="form-label small mb-1 text-muted">Filtro</label>
         <select name="filtro" class="form-select form-select-sm">
           <option value="">Todos os produtos</option>
@@ -98,11 +115,11 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
           <option value="controlado"  <?= $filtro === 'controlado'  ? 'selected':'' ?>>Controlados</option>
         </select>
       </div>
-      <div class="col-12 col-md-2 d-flex gap-2">
+      <div class="col-12 col-md-3 d-flex gap-2">
         <button type="submit" class="btn btn-sm flex-fill" style="background:var(--kf-primary);color:#fff;border:none">
           <i class="bi bi-funnel me-1"></i>Filtrar
         </button>
-        <?php if ($pesquisa || $categoria || $filtro): ?>
+        <?php if ($pesquisa || $categoria || $filtro || $fornecedor): ?>
         <a href="<?= $APP ?>/produtos" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x"></i></a>
         <?php endif; ?>
       </div>
@@ -214,7 +231,7 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
       <?php for ($pg = 1; $pg <= $paginacao['last_page']; $pg++): ?>
       <li class="page-item <?= $pg === $paginacao['current_page'] ? 'active' : '' ?>">
         <a class="page-link"
-           href="?q=<?= urlencode($pesquisa) ?>&cat=<?= $categoria ?>&filtro=<?= urlencode($filtro) ?>&page=<?= $pg ?>">
+           href="?q=<?= urlencode($pesquisa) ?>&cat=<?= $categoria ?>&fornecedor=<?= $fornecedor ?>&filtro=<?= urlencode($filtro) ?>&page=<?= $pg ?>">
           <?= $pg ?>
         </a>
       </li>

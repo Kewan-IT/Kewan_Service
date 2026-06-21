@@ -17,8 +17,12 @@ class Funcionario extends BaseModel
         $params = [];
 
         if ($pesquisa !== '') {
-            $where[]            = '(f.nome_completo LIKE :pesq OR f.numero_funcionario LIKE :pesq OR f.bi_numero LIKE :pesq OR f.telefone_principal LIKE :pesq)';
-            $params['pesq']     = '%' . $pesquisa . '%';
+            $where[]        = '(f.nome_completo LIKE :pesq1 OR f.numero_funcionario LIKE :pesq2 OR f.bi_numero LIKE :pesq3 OR f.telefone_principal LIKE :pesq4)';
+            $like           = '%' . $pesquisa . '%';
+            $params['pesq1'] = $like;
+            $params['pesq2'] = $like;
+            $params['pesq3'] = $like;
+            $params['pesq4'] = $like;
         }
         if ($status !== '') {
             $where[]            = 'f.status = :status';

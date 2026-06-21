@@ -17,6 +17,7 @@ $router->get('/funcionarios',                   ['FuncionarioController', 'index
 $router->get('/funcionarios/novo',              ['FuncionarioController', 'create']);
 $router->post('/funcionarios/novo',             ['FuncionarioController', 'store']);
 $router->get('/funcionarios/{id}',              ['FuncionarioController', 'show']);
+$router->get('/funcionarios/{id}/contrato',     ['FuncionarioController', 'contrato']);
 $router->get('/funcionarios/{id}/editar',       ['FuncionarioController', 'edit']);
 $router->post('/funcionarios/{id}/editar',      ['FuncionarioController', 'update']);
 $router->post('/funcionarios/{id}/credenciais', ['FuncionarioController', 'atribuirCredenciais']);
@@ -25,6 +26,7 @@ $router->post('/funcionarios/{id}/credenciais', ['FuncionarioController', 'atrib
 $router->get('/produtos',              ['ProdutoController', 'index']);
 $router->get('/produtos/novo',         ['ProdutoController', 'create']);
 $router->post('/produtos/novo',        ['ProdutoController', 'store']);
+$router->get('/produtos/pdf',          ['ProdutoController', 'pdf']);
 $router->get('/produtos/{id}',         ['ProdutoController', 'show']);
 $router->get('/produtos/{id}/editar',  ['ProdutoController', 'edit']);
 $router->post('/produtos/{id}/editar', ['ProdutoController', 'update']);
@@ -104,6 +106,7 @@ $router->get('/api/backup/verificar',      ['BackupController', 'verificarAutoma
 
 // ── API AJAX ─────────────────────────────────────────────────────
 $router->get('/api/produtos/pesquisar',      ['ApiController', 'pesquisarProdutos']);
+$router->get('/api/produtos/gerar-codigo-barras', ['ProdutoController', 'gerarCodigoBarrasPreview']);
 $router->get('/api/clientes/pesquisar',      ['ApiController', 'pesquisarClientes']);
 $router->get('/api/estoque/alertas',         ['ApiController', 'alertasEstoque']);
 $router->get('/api/dashboard/resumo',        ['ApiController', 'resumoDashboard']);

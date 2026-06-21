@@ -157,8 +157,35 @@ class FuncionarioController
 
         $id = $this->model->insert($dados);
 
-        $_SESSION['flash_sucesso'] = 'Funcionário registado com sucesso.';
-        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/funcionarios/' . $id);
+        $_SESSION['flash_sucesso'] = 'Funcionário registado com sucesso. Contrato de trabalho gerado automaticamente — pode imprimir ou guardar como PDF.';
+        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/funcionarios/' . $id . '?contrato=1');
+        exit;
+    }
+
+    // ================================================================
+    // GET /funcionarios/{id}/contrato — Contrato Individual de Trabalho
+    // gerado com base na Lei do Trabalho de Moçambique (Lei n.º 23/2007,
+    // de 1 de Agosto) para o sector privado
+    // ================================================================
+    public function contrato(string $id): void
+    {
+        AuthMiddleware::requirePerfil('admin', 'farmaceutico');
+
+        $funcionario = $this->model->findComDetalhes((int) $id);
+        if (!$funcionario) {
+            http_response_code(404);
+            require __DIR__ . '/../../app/Views/errors/404.php';
+            return;
+        }
+
+        $config = (new \App\Models\Configuracao())->getAllWithDefaults();
+
+        extract([
+            'f'      => $funcionario,
+            'config' => $config,
+            'appUrl' => $_ENV['APP_URL'] ?? '',
+        ]);
+        require __DIR__ . '/../../app/Views/funcionarios/contrato_pdf.php';
         exit;
     }
 
@@ -188,6 +215,7 @@ class FuncionarioController
             'historico'   => $historico,
             'flash_sucesso' => $_SESSION['flash_sucesso'] ?? null,
             'flash_erro'    => $_SESSION['flash_erro']    ?? null,
+            'abrir_contrato' => !empty($_GET['contrato']),
         ]);
         unset($_SESSION['flash_sucesso'], $_SESSION['flash_erro']);
     }
