@@ -291,52 +291,89 @@ class Venda extends BaseModel
     // ----------------------------------------------------------------
     // Listagem com filtros
     // ----------------------------------------------------------------
-    public function listar(array $filtros = []): array
+    public function listar(array $filtros = [], int $page = 1, int $perPage = 20): array
     {
-        $sql    = "
-            SELECT v.*,
-                   c.nome AS cliente_nome,
-                   u.nome AS usuario_nome,
+        $perPage = max(1, $perPage);
+        $where  = ['1=1'];
+        $params = [];
+
+        if (!empty($filtros['data_inicio'])) {
+            $where[] = 'DATE(v.criado_em) >= :data_inicio';
+            $params['data_inicio'] = $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where[] = 'DATE(v.criado_em) <= :data_fim';
+            $params['data_fim'] = $filtros['data_fim'];
+        }
+        if (!empty($filtros['status'])) {
+            $where[] = 'v.status = :status';
+            $params['status'] = $filtros['status'];
+        }
+        if (!empty($filtros['forma_pagamento'])) {
+            $where[] = 'v.forma_pagamento = :forma_pagamento';
+            $params['forma_pagamento'] = $filtros['forma_pagamento'];
+        }
+        if (!empty($filtros['busca'])) {
+            $where[] = '(v.numero_venda LIKE :busca1 OR c.nome LIKE :busca2)';
+            $params['busca1'] = '%' . $filtros['busca'] . '%';
+            $params['busca2'] = '%' . $filtros['busca'] . '%';
+        }
+
+        // Compatibilidade: limite simples (ex: dashboard)
+        if (!empty($filtros['limite'])) {
+            $whereStr = implode(' AND ', $where);
+            $sql = "
+                SELECT v.*, c.nome AS cliente_nome, u.nome AS usuario_nome,
+                       COUNT(iv.id) AS total_itens
+                FROM vendas v
+                LEFT JOIN clientes c     ON c.id = v.cliente_id
+                LEFT JOIN usuarios u     ON u.id = v.usuario_id
+                LEFT JOIN itens_venda iv ON iv.venda_id = v.id
+                WHERE $whereStr
+                GROUP BY v.id ORDER BY v.criado_em DESC
+                LIMIT " . (int)$filtros['limite'];
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+        }
+
+        $whereStr = implode(' AND ', $where);
+        $offset   = ($page - 1) * $perPage;
+
+        // Total (usando subquery para contagem correcta com GROUP BY)
+        $stmtCount = $this->db->prepare("
+            SELECT COUNT(*) FROM (
+                SELECT v.id FROM vendas v
+                LEFT JOIN clientes c     ON c.id = v.cliente_id
+                LEFT JOIN itens_venda iv ON iv.venda_id = v.id
+                WHERE $whereStr
+                GROUP BY v.id
+            ) sub
+        ");
+        $stmtCount->execute($params);
+        $total = (int) $stmtCount->fetchColumn();
+
+        $stmtData = $this->db->prepare("
+            SELECT v.*, c.nome AS cliente_nome, u.nome AS usuario_nome,
                    COUNT(iv.id) AS total_itens
             FROM vendas v
             LEFT JOIN clientes c     ON c.id = v.cliente_id
             LEFT JOIN usuarios u     ON u.id = v.usuario_id
             LEFT JOIN itens_venda iv ON iv.venda_id = v.id
-            WHERE 1=1
-        ";
-        $params = [];
+            WHERE $whereStr
+            GROUP BY v.id
+            ORDER BY v.criado_em DESC
+            LIMIT $perPage OFFSET $offset
+        ");
+        $stmtData->execute($params);
 
-        if (!empty($filtros['data_inicio'])) {
-            $sql .= ' AND DATE(v.criado_em) >= :data_inicio';
-            $params['data_inicio'] = $filtros['data_inicio'];
-        }
-        if (!empty($filtros['data_fim'])) {
-            $sql .= ' AND DATE(v.criado_em) <= :data_fim';
-            $params['data_fim'] = $filtros['data_fim'];
-        }
-        if (!empty($filtros['status'])) {
-            $sql .= ' AND v.status = :status';
-            $params['status'] = $filtros['status'];
-        }
-        if (!empty($filtros['forma_pagamento'])) {
-            $sql .= ' AND v.forma_pagamento = :forma_pagamento';
-            $params['forma_pagamento'] = $filtros['forma_pagamento'];
-        }
-        if (!empty($filtros['busca'])) {
-            $sql .= ' AND (v.numero_venda LIKE :busca1 OR c.nome LIKE :busca2)';
-            $params['busca1'] = '%' . $filtros['busca'] . '%';
-            $params['busca2'] = '%' . $filtros['busca'] . '%';
-        }
-
-        $sql .= ' GROUP BY v.id ORDER BY v.criado_em DESC';
-
-        if (!empty($filtros['limite'])) {
-            $sql .= ' LIMIT ' . (int)$filtros['limite'];
-        }
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
+        return [
+            'data'         => $stmtData->fetchAll(),
+            'total'        => $total,
+            'per_page'     => $perPage,
+            'current_page' => $page,
+            'last_page'    => max(1, (int) ceil($total / $perPage)),
+        ];
     }
 
     // ----------------------------------------------------------------

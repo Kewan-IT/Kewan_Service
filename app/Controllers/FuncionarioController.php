@@ -36,8 +36,10 @@ class FuncionarioController
         $status    = $_GET['status']        ?? '';
         $cargo_id  = (int)($_GET['cargo']   ?? 0);
         $page      = max(1, (int)($_GET['page'] ?? 1));
+        $perPage   = in_array((int)($_GET['per_page'] ?? 20), [10, 20, 50])
+                     ? (int)($_GET['per_page'] ?? 20) : 20;
 
-        $paginacao = $this->model->listar($pesquisa, $status, $cargo_id, $page, 20);
+        $paginacao = $this->model->listar($pesquisa, $status, $cargo_id, $page, $perPage);
         $cargos    = $this->cargoModel->listarActivos();
         $stats     = $this->model->estatisticas();
 
@@ -186,6 +188,94 @@ class FuncionarioController
             'appUrl' => $_ENV['APP_URL'] ?? '',
         ]);
         require __DIR__ . '/../../app/Views/funcionarios/contrato_pdf.php';
+        exit;
+    }
+
+    // ================================================================
+    // GET /funcionarios/{id}/boletim — Boletim de dados do funcionário
+    // ================================================================
+    public function boletim(string $id): void
+    {
+        AuthMiddleware::requirePerfil('admin', 'farmaceutico');
+
+        $funcionario = $this->model->findComDetalhes((int) $id);
+        if (!$funcionario) {
+            http_response_code(404);
+            require __DIR__ . '/../../app/Views/errors/404.php';
+            return;
+        }
+
+        $documentos = $this->model->documentos((int) $id);
+        $config     = (new \App\Models\Configuracao())->getAllWithDefaults();
+
+        extract([
+            'f'          => $funcionario,
+            'documentos' => $documentos,
+            'config'     => $config,
+            'appUrl'     => $_ENV['APP_URL'] ?? '',
+        ]);
+        require __DIR__ . '/../../app/Views/funcionarios/boletim_pdf.php';
+        exit;
+    }
+
+    // ================================================================
+    // GET /funcionarios/{id}/documento/{tipo} — serve doc_identificacao
+    // ou doc_complementar com autenticação obrigatória
+    // ================================================================
+    public function servirDocumento(string $id, string $tipo = ''): void
+    {
+        AuthMiddleware::requirePerfil('admin', 'farmaceutico');
+
+        $funcionario = $this->model->findComDetalhes((int) $id);
+        if (!$funcionario) { http_response_code(404); exit; }
+
+        $campo = match ($tipo) {
+            'identificacao' => 'doc_identificacao_url',
+            'complementar'  => 'doc_complementar_url',
+            default         => null,
+        };
+        if (!$campo || empty($funcionario[$campo])) { http_response_code(404); exit; }
+
+        $this->enviarFicheiro(
+            $funcionario[$campo],
+            $funcionario['doc_' . $tipo . '_nome'] ?? basename($funcionario[$campo]),
+            $funcionario['doc_' . $tipo . '_mime'] ?? 'application/octet-stream'
+        );
+    }
+
+    // ================================================================
+    // GET /funcionarios/doc/{docId} — serve documentos anexos com auth
+    // ================================================================
+    public function servirDocumentoAnexo(string $docId): void
+    {
+        AuthMiddleware::requirePerfil('admin', 'farmaceutico');
+
+        $db   = \Core\Database::getInstance();
+        $stmt = $db->prepare("SELECT * FROM funcionarios_documentos WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => (int)$docId]);
+        $doc  = $stmt->fetch();
+
+        if (!$doc) { http_response_code(404); exit; }
+
+        $this->enviarFicheiro($doc['ficheiro_url'], $doc['ficheiro_nome'], $doc['ficheiro_mime']);
+    }
+
+    // ----------------------------------------------------------------
+    // Serve um ficheiro do disco com os headers correctos (inline)
+    // ----------------------------------------------------------------
+    private function enviarFicheiro(string $relativePath, string $nome, string $mime): void
+    {
+        $abs = dirname(__DIR__, 2) . '/public/uploads/' . ltrim($relativePath, '/');
+
+        if (!is_file($abs)) { http_response_code(404); exit('Ficheiro não encontrado.'); }
+
+        $disposicao = !empty($_GET['download']) ? 'attachment' : 'inline';
+
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: ' . $disposicao . '; filename="' . addslashes(basename($nome)) . '"');
+        header('Content-Length: ' . filesize($abs));
+        header('Cache-Control: private, no-store');
+        readfile($abs);
         exit;
     }
 
@@ -349,21 +439,23 @@ class FuncionarioController
             // Actualizar credenciais existentes
             $upd = ['email' => $email, 'perfil' => $perfil];
             if (!empty($senha) && strlen($senha) >= 8) {
-                $upd['senha_hash'] = password_hash($senha, PASSWORD_BCRYPT, ['cost' => 12]);
+                $upd['senha_hash']          = password_hash($senha, PASSWORD_BCRYPT, ['cost' => 12]);
+                $upd['trocar_senha_proximo'] = 1; // forçar troca no próximo login
             }
             $this->usuarioModel->update((int) $funcionario['usuario_id'], $upd);
-            $_SESSION['flash_sucesso'] = 'Credenciais actualizadas.';
+            $_SESSION['flash_sucesso'] = 'Credenciais actualizadas. O utilizador terá de alterar a senha no próximo acesso.';
         } else {
-            // Criar novas credenciais
+            // Criar novas credenciais — sempre forçar troca no primeiro login
             $this->usuarioModel->criarCredenciais([
-                'nome'           => $funcionario['nome_completo'],
-                'email'          => $email,
-                'perfil'         => $perfil,
-                'senha'          => $senha,
-                'funcionario_id' => (int) $id,
-                'ativo'          => 1,
+                'nome'                => $funcionario['nome_completo'],
+                'email'               => $email,
+                'perfil'              => $perfil,
+                'senha'               => $senha,
+                'funcionario_id'      => (int) $id,
+                'ativo'               => 1,
+                'trocar_senha_proximo'=> 1,
             ], (int) $_SESSION['usuario_id']);
-            $_SESSION['flash_sucesso'] = 'Acesso ao sistema criado com sucesso.';
+            $_SESSION['flash_sucesso'] = 'Acesso ao sistema criado. O utilizador será obrigado a definir uma senha pessoal no primeiro login.';
         }
 
         header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/funcionarios/' . $id);

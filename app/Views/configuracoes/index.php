@@ -13,15 +13,11 @@
 </div>
 
 <?php if (!empty($flash_sucesso)): ?>
-<div class="alert alert-success py-2 px-3 mb-3">
-  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
-</div>
+<span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
 <?php endif; ?>
 
 <?php if (!empty($flash_erro)): ?>
-<div class="alert alert-danger py-2 px-3 mb-3">
-  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
-</div>
+<span id="kf-flash-erro" data-msg="<?= htmlspecialchars($flash_erro) ?>" hidden></span>
 <?php endif; ?>
 
 <form method="POST" enctype="multipart/form-data" action="<?= $APP ?>/configuracoes">
@@ -123,6 +119,71 @@
       </div>
       <div class="alert alert-light border mt-3 mb-0">
         <i class="bi bi-lightbulb me-2"></i>Estas informações são usadas nos talões e nos documentos emitidos pelo sistema.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Configurações de Email SMTP ── -->
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-envelope-at text-primary"></i>
+      <strong>Email SMTP</strong>
+      <span class="badge ms-auto <?= !empty($config['smtp_host']) && !empty($config['smtp_de_email']) ? 'bg-success' : 'bg-secondary' ?>" style="font-size:10px">
+        <?= !empty($config['smtp_host']) && !empty($config['smtp_de_email']) ? '✓ Configurado' : 'Não configurado' ?>
+      </span>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-info py-2 small mb-3">
+        <i class="bi bi-info-circle me-1"></i>
+        Configure o SMTP para habilitar o envio de emails de recuperação de senha.
+        Sem esta configuração, o sistema gera uma senha temporária como alternativa.
+      </div>
+      <div class="row g-3">
+        <div class="col-sm-8">
+          <label class="form-label small">Servidor SMTP</label>
+          <input type="text" name="smtp_host" class="form-control form-control-sm"
+                 value="<?= htmlspecialchars($config['smtp_host'] ?? '') ?>"
+                 placeholder="smtp.gmail.com">
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label small">Porta</label>
+          <select name="smtp_porta" class="form-select form-select-sm">
+            <option value="587" <?= ($config['smtp_porta']??'587')==='587'?'selected':'' ?>>587 (TLS — recomendado)</option>
+            <option value="465" <?= ($config['smtp_porta']??'')==='465'?'selected':'' ?>>465 (SSL)</option>
+            <option value="25"  <?= ($config['smtp_porta']??'')==='25' ?'selected':'' ?>>25 (sem criptografia)</option>
+          </select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small">Utilizador SMTP (email)</label>
+          <input type="email" name="smtp_usuario" class="form-control form-control-sm"
+                 value="<?= htmlspecialchars($config['smtp_usuario'] ?? '') ?>"
+                 placeholder="farmacia@gmail.com">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small">Senha SMTP</label>
+          <div class="input-group input-group-sm">
+            <input type="password" id="smtp-senha" name="smtp_senha" class="form-control form-control-sm"
+                   value="<?= htmlspecialchars($config['smtp_senha'] ?? '') ?>"
+                   placeholder="Senha ou App Password">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="const e=document.getElementById('smtp-senha');e.type=e.type==='password'?'text':'password'">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="form-text">Para Gmail use uma <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password</a>.</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small">Nome remetente</label>
+          <input type="text" name="smtp_de_nome" class="form-control form-control-sm"
+                 value="<?= htmlspecialchars($config['smtp_de_nome'] ?? '') ?>"
+                 placeholder="KewanFarma">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small">Email remetente (De)</label>
+          <input type="email" name="smtp_de_email" class="form-control form-control-sm"
+                 value="<?= htmlspecialchars($config['smtp_de_email'] ?? '') ?>"
+                 placeholder="noreply@farmacia.mz">
+        </div>
       </div>
     </div>
   </div>

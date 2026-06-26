@@ -15,17 +15,11 @@ $APP = $_ENV['APP_URL'] ?? '';
 </div>
 
 <!-- Flash -->
-<?php if ($flash_sucesso ?? null): ?>
-<div class="alert alert-success alert-dismissible fade show py-2 mb-3">
-  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<?php if (!empty($flash_sucesso)): ?>
+<span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
 <?php endif; ?>
-<?php if ($flash_erro ?? null): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2 mb-3">
-  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<?php if (!empty($flash_erro)): ?>
+<span id="kf-flash-erro" data-msg="<?= htmlspecialchars($flash_erro) ?>" hidden></span>
 <?php endif; ?>
 
 <!-- Stats -->
@@ -154,20 +148,7 @@ $APP = $_ENV['APP_URL'] ?? '';
       </table>
     </div>
 
-    <?php if ($paginacao['last_page'] > 1): ?>
-    <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top">
-      <small class="text-muted"><?= $paginacao['total'] ?> fornecedores</small>
-      <nav>
-        <ul class="pagination pagination-sm mb-0">
-          <?php for ($i = 1; $i <= $paginacao['last_page']; $i++): ?>
-          <li class="page-item <?= $i === $paginacao['current_page'] ? 'active' : '' ?>">
-            <a class="page-link" href="?q=<?= urlencode($q) ?>&status=<?= urlencode($status) ?>&page=<?= $i ?>"><?= $i ?></a>
-          </li>
-          <?php endfor; ?>
-        </ul>
-      </nav>
-    </div>
-    <?php endif; ?>
+    <?php include __DIR__ . '/../partials/paginacao.php'; ?>
     <?php endif; ?>
   </div>
 </div>

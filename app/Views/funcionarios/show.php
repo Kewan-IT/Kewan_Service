@@ -53,9 +53,13 @@ $perfilMap = [
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap">
+    <a href="<?= $APP ?>/funcionarios/<?= $f['id'] ?>/boletim" target="_blank"
+       class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-person-badge me-1"></i>Boletim
+    </a>
     <a href="<?= $APP ?>/funcionarios/<?= $f['id'] ?>/contrato" target="_blank"
        class="btn btn-sm btn-outline-success">
-      <i class="bi bi-file-earmark-text me-1"></i>Contrato de Trabalho
+      <i class="bi bi-file-earmark-text me-1"></i>Contrato
     </a>
     <?php if ($isAdmin): ?>
     <a href="<?= $APP ?>/funcionarios/<?= $f['id'] ?>/editar"
@@ -223,9 +227,9 @@ $perfilMap = [
             <div class="text-muted" style="font-size:.75rem"><?= htmlspecialchars($f['doc_identificacao_nome'] ?? '') ?></div>
           </div>
         </div>
-        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($f['doc_identificacao_url']) ?>"
-           target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2">
-          <i class="bi bi-eye"></i>
+        <a href="<?= $APP ?>/funcionarios/<?= $f['id'] ?>/documento/identificacao"
+           target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" title="Visualizar documento">
+          <i class="bi bi-eye me-1"></i>Ver
         </a>
       </div>
       <?php endif; ?>
@@ -240,9 +244,9 @@ $perfilMap = [
             <div class="text-muted" style="font-size:.75rem"><?= htmlspecialchars($f['doc_complementar_nome'] ?? '') ?></div>
           </div>
         </div>
-        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($f['doc_complementar_url']) ?>"
-           target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2">
-          <i class="bi bi-eye"></i>
+        <a href="<?= $APP ?>/funcionarios/<?= $f['id'] ?>/documento/complementar"
+           target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" title="Visualizar documento">
+          <i class="bi bi-eye me-1"></i>Ver
         </a>
       </div>
       <?php endif; ?>
@@ -251,7 +255,8 @@ $perfilMap = [
       <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2"
            style="background:#f8f9fa">
         <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-file-earmark-text text-secondary fs-5"></i>
+          <?php $docIcon = ($doc['ficheiro_mime'] ?? '') === 'application/pdf' ? 'bi-file-earmark-pdf text-danger' : 'bi-file-earmark-text text-secondary'; ?>
+          <i class="bi <?= $docIcon ?> fs-5"></i>
           <div>
             <div class="small fw-semibold"><?= htmlspecialchars($doc['titulo']) ?></div>
             <div class="text-muted" style="font-size:.75rem">
@@ -259,9 +264,9 @@ $perfilMap = [
             </div>
           </div>
         </div>
-        <a href="<?= $APP ?>/uploads/<?= htmlspecialchars($doc['ficheiro_url']) ?>"
-           target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2">
-          <i class="bi bi-eye"></i>
+        <a href="<?= $APP ?>/funcionarios/doc/<?= $doc['id'] ?>"
+           target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" title="Visualizar documento">
+          <i class="bi bi-eye me-1"></i>Ver
         </a>
       </div>
       <?php endforeach; ?>

@@ -13,15 +13,11 @@
 </div>
 
 <?php if (!empty($flash_sucesso)): ?>
-<div class="alert alert-success py-2 px-3 mb-3">
-  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
-</div>
+<span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
 <?php endif; ?>
 
 <?php if (!empty($flash_erro)): ?>
-<div class="alert alert-danger py-2 px-3 mb-3">
-  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
-</div>
+<span id="kf-flash-erro" data-msg="<?= htmlspecialchars($flash_erro) ?>" hidden></span>
 <?php endif; ?>
 
 <div class="row g-4 mb-4">

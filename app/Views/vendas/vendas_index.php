@@ -63,7 +63,7 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
 </div>
 <div class="card border-0 shadow-sm">
   <div class="card-body p-0">
-    <?php if (empty($vendas)): ?>
+    <?php if (empty($paginacao['data'])): ?>
     <div class="text-center py-5 text-muted"><i class="bi bi-receipt fs-1 d-block mb-2"></i>Nenhuma venda encontrada.</div>
     <?php else: ?>
     <div class="table-responsive">
@@ -80,7 +80,7 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
           </tr>
         </thead>
         <tbody>
-        <?php foreach ($vendas as $v):
+        <?php foreach ($paginacao['data'] as $v):
           [$cor,$lbl] = match($v['status']) {
             'concluida'=>['success','Concluída'],'cancelada'=>['danger','Cancelada'],
             default=>['secondary',ucfirst($v['status'])]
@@ -99,6 +99,7 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
         </tbody>
       </table>
     </div>
+    <?php include __DIR__ . '/../partials/paginacao.php'; ?>
     <?php endif; ?>
   </div>
 </div>

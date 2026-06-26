@@ -216,6 +216,104 @@ class Caixa extends BaseModel
     }
 
     // ----------------------------------------------------------------
+    // Dados ricos para o relatório de fecho — vendas detalhadas,
+    // top produtos, top operadores, timeline horária
+    // ----------------------------------------------------------------
+    public function dadosRelatorio(int $caixaId): array
+    {
+        // Vendas completas da sessão
+        $stmtV = $this->db->prepare("
+            SELECT v.id, v.numero_venda, v.total, v.subtotal, v.desconto,
+                   v.forma_pagamento, v.valor_pago, v.troco, v.status,
+                   v.criado_em,
+                   u.nome AS operador,
+                   COALESCE(c.nome, 'Balcão') AS cliente
+            FROM vendas v
+            JOIN movimentos_caixa mc ON mc.venda_id = v.id AND mc.caixa_id = :id
+            JOIN usuarios u ON u.id = v.usuario_id
+            LEFT JOIN clientes c ON c.id = v.cliente_id
+            WHERE v.status = 'concluida'
+            ORDER BY v.criado_em ASC
+        ");
+        $stmtV->execute(['id' => $caixaId]);
+        $vendas = $stmtV->fetchAll();
+
+        // Top 10 produtos vendidos na sessão
+        $stmtP = $this->db->prepare("
+            SELECT p.nome AS produto, p.unidade_medida,
+                   SUM(iv.quantidade) AS qtd_total,
+                   SUM(iv.subtotal)   AS valor_total
+            FROM itens_venda iv
+            JOIN vendas v     ON v.id = iv.venda_id
+            JOIN produtos p   ON p.id = iv.produto_id
+            JOIN movimentos_caixa mc ON mc.venda_id = v.id AND mc.caixa_id = :id
+            WHERE v.status = 'concluida'
+            GROUP BY iv.produto_id
+            ORDER BY qtd_total DESC
+            LIMIT 10
+        ");
+        $stmtP->execute(['id' => $caixaId]);
+        $topProdutos = $stmtP->fetchAll();
+
+        // Vendas por hora (timeline)
+        $stmtH = $this->db->prepare("
+            SELECT HOUR(v.criado_em) AS hora,
+                   COUNT(v.id)       AS num_vendas,
+                   SUM(v.total)      AS total_hora
+            FROM vendas v
+            JOIN movimentos_caixa mc ON mc.venda_id = v.id AND mc.caixa_id = :id
+            WHERE v.status = 'concluida'
+            GROUP BY HOUR(v.criado_em)
+            ORDER BY hora
+        ");
+        $stmtH->execute(['id' => $caixaId]);
+        $porHora = $stmtH->fetchAll();
+
+        // Movimentos manuais (sangrias, suprimentos, entradas, saídas)
+        $stmtM = $this->db->prepare("
+            SELECT m.*, u.nome AS usuario_nome
+            FROM movimentos_caixa m
+            LEFT JOIN usuarios u ON u.id = m.usuario_id
+            WHERE m.caixa_id = :id AND m.tipo != 'venda'
+            ORDER BY m.criado_em ASC
+        ");
+        $stmtM->execute(['id' => $caixaId]);
+        $manuais = $stmtM->fetchAll();
+
+        // Vendas por operador
+        $stmtO = $this->db->prepare("
+            SELECT u.nome AS operador,
+                   COUNT(v.id) AS num_vendas,
+                   SUM(v.total) AS total,
+                   SUM(v.desconto) AS total_descontos
+            FROM vendas v
+            JOIN movimentos_caixa mc ON mc.venda_id = v.id AND mc.caixa_id = :id
+            JOIN usuarios u ON u.id = v.usuario_id
+            WHERE v.status = 'concluida'
+            GROUP BY v.usuario_id
+            ORDER BY total DESC
+        ");
+        $stmtO->execute(['id' => $caixaId]);
+        $porOperador = $stmtO->fetchAll();
+
+        // Ticket médio, maior e menor venda
+        $stmtStats = $this->db->prepare("
+            SELECT COUNT(v.id) AS total_vendas,
+                   COALESCE(AVG(v.total),0)  AS ticket_medio,
+                   COALESCE(MAX(v.total),0)  AS maior_venda,
+                   COALESCE(MIN(v.total),0)  AS menor_venda,
+                   COALESCE(SUM(v.desconto),0) AS total_descontos
+            FROM vendas v
+            JOIN movimentos_caixa mc ON mc.venda_id = v.id AND mc.caixa_id = :id
+            WHERE v.status = 'concluida'
+        ");
+        $stmtStats->execute(['id' => $caixaId]);
+        $statsVendas = $stmtStats->fetch();
+
+        return compact('vendas', 'topProdutos', 'porHora', 'manuais', 'porOperador', 'statsVendas');
+    }
+
+    // ----------------------------------------------------------------
     // Estatísticas do dashboard
     // ----------------------------------------------------------------
     public function estatisticasHoje(): array

@@ -5,8 +5,12 @@
 $router->get('/auth/login',           ['AuthController', 'showLogin']);
 $router->post('/auth/login',          ['AuthController', 'login']);
 $router->get('/auth/logout',          ['AuthController', 'logout']);
-$router->get('/auth/recuperar',       ['AuthController', 'showRecuperar']);
+$router->get('/auth/recuperar',       ['AuthController', 'recuperarForm']);
 $router->post('/auth/recuperar',      ['AuthController', 'recuperar']);
+$router->get('/auth/reset',           ['AuthController', 'resetForm']);
+$router->post('/auth/reset',          ['AuthController', 'reset']);
+$router->get('/auth/trocar-senha',    ['AuthController', 'trocarSenhaForm']);
+$router->post('/auth/trocar-senha',   ['AuthController', 'trocarSenha']);
 
 // ── Dashboard ────────────────────────────────────────────────────
 $router->get('/',                     ['DashboardController', 'index']);
@@ -18,6 +22,9 @@ $router->get('/funcionarios/novo',              ['FuncionarioController', 'creat
 $router->post('/funcionarios/novo',             ['FuncionarioController', 'store']);
 $router->get('/funcionarios/{id}',              ['FuncionarioController', 'show']);
 $router->get('/funcionarios/{id}/contrato',     ['FuncionarioController', 'contrato']);
+$router->get('/funcionarios/{id}/boletim',      ['FuncionarioController', 'boletim']);
+$router->get('/funcionarios/{id}/documento/{tipo}', ['FuncionarioController', 'servirDocumento']);
+$router->get('/funcionarios/doc/{docId}',       ['FuncionarioController', 'servirDocumentoAnexo']);
 $router->get('/funcionarios/{id}/editar',       ['FuncionarioController', 'edit']);
 $router->post('/funcionarios/{id}/editar',      ['FuncionarioController', 'update']);
 $router->post('/funcionarios/{id}/credenciais', ['FuncionarioController', 'atribuirCredenciais']);
@@ -79,6 +86,7 @@ $router->post('/caixa/abrir',        ['CaixaController', 'abrir']);
 $router->post('/caixa/fechar',       ['CaixaController', 'fechar']);
 $router->post('/caixa/movimento',    ['CaixaController', 'movimento']);
 $router->get('/caixa/{id}',          ['CaixaController', 'show']);
+$router->get('/caixa/{id}/relatorio', ['CaixaController', 'relatorio']);
 
 // ── Relatórios ───────────────────────────────────────────────────
 $router->get('/relatorios',                ['RelatorioController', 'index']);

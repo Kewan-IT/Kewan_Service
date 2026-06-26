@@ -22,6 +22,18 @@ class AuthMiddleware
             header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/auth/login');
             exit;
         }
+
+        // Se tiver a flag de troca obrigatória, bloquear qualquer outra rota
+        if (!empty($_SESSION['trocar_senha_obrigatorio'])) {
+            $uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+            $base = rtrim(parse_url($_ENV['APP_URL'] ?? '', PHP_URL_PATH) ?? '', '/');
+            $rota = str_replace($base, '', $uri);
+            // Permitir apenas a rota de troca e o logout
+            if (!in_array(rtrim($rota, '/'), ['/auth/trocar-senha', '/auth/logout'], true)) {
+                header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/auth/trocar-senha');
+                exit;
+            }
+        }
     }
 
     // ----------------------------------------------------------------

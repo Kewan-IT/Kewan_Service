@@ -69,6 +69,20 @@
       flex-shrink: 0;
     }
 
+    .sidebar-brand-icon--logo {
+      background: transparent;
+      border-radius: 8px;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .sidebar-brand-icon--logo img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
     .sidebar-brand-text h2 {
       font-size: 15px;
       font-weight: 700;
@@ -383,6 +397,88 @@
       max-width: 320px;
     }
 
+    /* ── Notificações flutuantes (toasts) ── */
+    #kf-toast-container {
+      position: fixed;
+      top: 22px; right: 22px;
+      z-index: 10060;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 360px;
+      max-width: calc(100vw - 32px);
+      pointer-events: none;
+    }
+    .kf-toast {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 10px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.10);
+      padding: 14px 16px 17px;
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      font-size: 13px;
+      border-left: 4px solid var(--kf-primary);
+      animation: kf-toast-in .28s cubic-bezier(.21,1.02,.73,1) forwards;
+      position: relative;
+      overflow: hidden;
+      pointer-events: all;
+      cursor: default;
+    }
+    .kf-toast.kf-toast-out {
+      animation: kf-toast-out .22s ease-in forwards;
+    }
+    .kf-toast-sucesso { border-left-color: #1a7f5a; }
+    .kf-toast-erro    { border-left-color: #dc3545; }
+    .kf-toast-aviso   { border-left-color: #f59e0b; }
+    .kf-toast-info    { border-left-color: #3b82f6; }
+    .kf-toast .kf-toast-icon {
+      font-size: 20px; line-height: 1.1; flex-shrink: 0; margin-top: 1px;
+    }
+    .kf-toast-sucesso .kf-toast-icon { color: #1a7f5a; }
+    .kf-toast-erro    .kf-toast-icon { color: #dc3545; }
+    .kf-toast-aviso   .kf-toast-icon { color: #d97706; }
+    .kf-toast-info    .kf-toast-icon { color: #3b82f6; }
+    .kf-toast .kf-toast-body { flex: 1; min-width: 0; }
+    .kf-toast .kf-toast-titulo {
+      font-weight: 700; font-size: 12px; text-transform: uppercase;
+      letter-spacing: .4px; margin-bottom: 2px;
+    }
+    .kf-toast-sucesso .kf-toast-titulo { color: #1a7f5a; }
+    .kf-toast-erro    .kf-toast-titulo { color: #b91c1c; }
+    .kf-toast-aviso   .kf-toast-titulo { color: #b45309; }
+    .kf-toast-info    .kf-toast-titulo { color: #1d4ed8; }
+    .kf-toast .kf-toast-msg { color: #2d3748; line-height: 1.45; word-break: break-word; }
+    .kf-toast .kf-toast-close {
+      background: none; border: none; color: #aaa; font-size: 18px; line-height: 1;
+      cursor: pointer; padding: 0; flex-shrink: 0; margin-left: 4px;
+      transition: color .15s;
+    }
+    .kf-toast .kf-toast-close:hover { color: #555; }
+    .kf-toast .kf-toast-bar {
+      position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+      border-radius: 0 0 0 0;
+    }
+    .kf-toast-sucesso .kf-toast-bar { background: #1a7f5a; animation: kf-toast-bar 5.5s linear forwards; }
+    .kf-toast-erro    .kf-toast-bar { background: #dc3545; animation: kf-toast-bar 6.5s linear forwards; }
+    .kf-toast-aviso   .kf-toast-bar { background: #f59e0b; animation: kf-toast-bar 5.5s linear forwards; }
+    .kf-toast-info    .kf-toast-bar { background: #3b82f6; animation: kf-toast-bar 5.5s linear forwards; }
+    @keyframes kf-toast-in {
+      from { opacity: 0; transform: translateX(52px) scale(.95); }
+      to   { opacity: 1; transform: translateX(0)    scale(1);   }
+    }
+    @keyframes kf-toast-out {
+      from { opacity: 1; transform: translateX(0);    max-height: 200px; margin-bottom: 0; }
+      to   { opacity: 0; transform: translateX(52px); max-height: 0;     margin-bottom: -10px; }
+    }
+    @keyframes kf-toast-bar {
+      from { width: 100%; }
+      to   { width: 0%; }
+    }
+    @media (max-width: 480px) {
+      #kf-toast-container { left: 12px; right: 12px; top: 12px; width: auto; }
+    }
+
     .sidebar-overlay {
       display: none;
       position: fixed;
@@ -416,10 +512,30 @@ $isRestrito   = in_array($perfil, ['caixa', 'tecnico', 'farmaceutico']);
 <!-- ── Sidebar ── -->
 <aside class="kf-sidebar" id="sidebar">
 
+  <?php
+  // Configurações da farmácia — carregadas uma vez por sessão para evitar query em cada request
+  if (empty($_SESSION['_kf_config']) || (time() - ($_SESSION['_kf_config_ts'] ?? 0)) > 120) {
+      $_SESSION['_kf_config']    = (new \App\Models\Configuracao())->getAllWithDefaults();
+      $_SESSION['_kf_config_ts'] = time();
+  }
+  $kfConfig      = $_SESSION['_kf_config'];
+  $kfNomeFarmacia= $kfConfig['nome_farmacia'] ?: 'KewanFarma';
+  $kfLogo        = $kfConfig['logo_farmacia'] ?? '';
+  $kfAppUrl      = $_ENV['APP_URL'] ?? '';
+  ?>
+
   <div class="sidebar-brand">
-    <div class="sidebar-brand-icon"><i class="bi bi-capsule-pill"></i></div>
+    <?php if (!empty($kfLogo)): ?>
+      <div class="sidebar-brand-icon sidebar-brand-icon--logo">
+        <img src="<?= $kfAppUrl ?>/uploads/<?= htmlspecialchars($kfLogo) ?>"
+             alt="<?= htmlspecialchars($kfNomeFarmacia) ?>"
+             onerror="this.parentElement.innerHTML='<i class=\'bi bi-capsule-pill\'></i>'; this.parentElement.classList.remove('sidebar-brand-icon--logo')">
+      </div>
+    <?php else: ?>
+      <div class="sidebar-brand-icon"><i class="bi bi-capsule-pill"></i></div>
+    <?php endif; ?>
     <div class="sidebar-brand-text">
-      <h2>KewanFarma</h2>
+      <h2><?= htmlspecialchars($kfNomeFarmacia) ?></h2>
       <span>Sistema de Gestão</span>
     </div>
   </div>
@@ -588,24 +704,15 @@ $isRestrito   = in_array($perfil, ['caixa', 'tecnico', 'farmaceutico']);
   </div>
 </header>
 
-<!-- ── Conteúdo principal ── -->
+<!-- ── Conteúdo principal ── -->/
 <main class="kf-main">
   <div class="kf-content">
 
     <?php if (!empty($flash_sucesso)): ?>
-      <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
-        <i class="bi bi-check-circle-fill"></i>
-        <span><?= htmlspecialchars($flash_sucesso) ?></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
+    <span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
     <?php endif; ?>
-
     <?php if (!empty($flash_erro)): ?>
-      <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
-        <i class="bi bi-exclamation-triangle-fill"></i>
-        <span><?= htmlspecialchars($flash_erro) ?></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
+    <span id="kf-flash-erro" data-msg="<?= htmlspecialchars($flash_erro) ?>" hidden></span>
     <?php endif; ?>
 
     <?= $content ?>
@@ -761,6 +868,76 @@ fetch(APP_URL + '/api/backup/verificar')
   }).catch(() => {});
 <?php endif; ?>
 
+</script>
+
+<!-- ── Container de toasts ── -->
+<div id="kf-toast-container" role="region" aria-label="Notificações" aria-live="polite"></div>
+
+<script>
+// ================================================================
+// kfToast — Sistema global de notificações flutuantes
+// Uso: kfToast('Mensagem', 'sucesso' | 'erro' | 'aviso' | 'info')
+// ================================================================
+(function () {
+  const ICONS = {
+    sucesso: 'bi-check-circle-fill',
+    erro:    'bi-x-circle-fill',
+    aviso:   'bi-exclamation-triangle-fill',
+    info:    'bi-info-circle-fill',
+  };
+  const TITULOS = {
+    sucesso: 'Sucesso',
+    erro:    'Erro',
+    aviso:   'Aviso',
+    info:    'Informação',
+  };
+  const DURACAO = { sucesso: 5500, erro: 6500, aviso: 5500, info: 5500 };
+
+  window.kfToast = function (msg, tipo = 'sucesso') {
+    if (!msg) return;
+    const container = document.getElementById('kf-toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `kf-toast kf-toast-${tipo}`;
+    toast.setAttribute('role', tipo === 'erro' ? 'alert' : 'status');
+    toast.innerHTML = `
+      <i class="bi ${ICONS[tipo] || ICONS.info} kf-toast-icon"></i>
+      <div class="kf-toast-body">
+        <div class="kf-toast-titulo">${TITULOS[tipo] || tipo}</div>
+        <div class="kf-toast-msg">${msg}</div>
+      </div>
+      <button class="kf-toast-close" aria-label="Fechar">×</button>
+      <div class="kf-toast-bar"></div>
+    `;
+
+    const fechar = () => {
+      toast.classList.add('kf-toast-out');
+      toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    };
+
+    toast.querySelector('.kf-toast-close').addEventListener('click', fechar);
+
+    // Fechar ao clicar no próprio toast (fora do botão)
+    toast.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('kf-toast-close')) fechar();
+    });
+
+    container.appendChild(toast);
+
+    // Remover automaticamente
+    const dur = DURACAO[tipo] ?? 5500;
+    setTimeout(fechar, dur);
+  };
+
+  // Disparar as mensagens PHP flash ao carregar a página
+  document.addEventListener('DOMContentLoaded', () => {
+    const s = document.getElementById('kf-flash-sucesso');
+    const e = document.getElementById('kf-flash-erro');
+    if (s) kfToast(s.dataset.msg, 'sucesso');
+    if (e) kfToast(e.dataset.msg, 'erro');
+  });
+})();
 </script>
 
 </body>

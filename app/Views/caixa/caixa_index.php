@@ -47,16 +47,10 @@ $tiposMov = [
 </div>
 
 <?php if (!empty($flash_sucesso)): ?>
-<div class="alert alert-success alert-dismissible fade show mb-3">
-  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
 <?php endif; ?>
 <?php if (!empty($flash_erro)): ?>
-<div class="alert alert-danger alert-dismissible fade show mb-3">
-  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<span id="kf-flash-erro" data-msg="<?= htmlspecialchars($flash_erro) ?>" hidden></span>
 <?php endif; ?>
 
 <!-- Estado da caixa -->
@@ -272,6 +266,12 @@ $tiposMov = [
         </tbody>
       </table>
     </div>
+    <?php
+    // Reutilizar partial de paginação com $historico como $paginacao
+    $paginacao = $historico;
+    include __DIR__ . '/../partials/paginacao.php';
+    unset($paginacao);
+    ?>
     <?php endif; ?>
   </div>
 </div>

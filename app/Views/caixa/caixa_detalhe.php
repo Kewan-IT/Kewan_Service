@@ -41,6 +41,10 @@ if ($s['fechado_em']) {
     </p>
   </div>
   <div class="d-flex gap-2">
+    <a href="<?= $APP ?>/caixa/<?= $s['id'] ?>/relatorio" target="_blank"
+       class="btn btn-sm btn-success">
+      <i class="bi bi-file-earmark-bar-graph me-1"></i>Relatório de Fecho
+    </a>
     <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
       <i class="bi bi-printer me-1"></i>Imprimir
     </button>
@@ -49,6 +53,14 @@ if ($s['fechado_em']) {
     </a>
   </div>
 </div>
+
+<?php if (!empty($_GET['relatorio'])): ?>
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    window.open('<?= $APP ?>/caixa/<?= $s['id'] ?>/relatorio', '_blank');
+  });
+</script>
+<?php endif; ?>
 
 <div class="row g-4">
 

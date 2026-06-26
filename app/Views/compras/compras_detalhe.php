@@ -14,17 +14,11 @@ $podeCancelar = in_array($compra['status'], ['rascunho','enviada']);
 ?>
 
 <!-- Flash messages -->
-<?php if ($flash_sucesso ?? null): ?>
-<div class="alert alert-success alert-dismissible fade show py-2 mb-3" role="alert">
-  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<?php if (!empty($flash_sucesso)): ?>
+<span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
 <?php endif; ?>
-<?php if ($flash_erro ?? null): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2 mb-3" role="alert">
-  <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_erro) ?>
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<?php if (!empty($flash_erro)): ?>
+<span id="kf-flash-erro" data-msg="<?= htmlspecialchars($flash_erro) ?>" hidden></span>
 <?php endif; ?>
 
 <!-- Cabeçalho -->

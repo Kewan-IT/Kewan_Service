@@ -90,6 +90,18 @@
       font-size: 26px;
     }
 
+    .brand-logo-icon--img {
+      background: #fff;
+      padding: 5px;
+    }
+
+    .brand-logo-icon--img img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
     .brand-logo-text h1 {
       font-size: 22px;
       font-weight: 700;
@@ -228,7 +240,38 @@
     @media (max-width: 680px) {
       .auth-brand { display: none; }
       .auth-form-panel { padding: 36px 28px; }
+      .auth-mobile-logo { display: flex !important; }
     }
+
+    .auth-mobile-logo {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .auth-mobile-logo-icon {
+      width: 42px; height: 42px;
+      background: var(--kf-primary);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: #fff; flex-shrink: 0;
+    }
+
+    .auth-mobile-logo-icon--img {
+      background: #fff;
+      border: 2px solid #e0f0e8;
+      padding: 3px;
+    }
+
+    .auth-mobile-logo-icon--img img {
+      width: 34px; height: 34px; object-fit: contain; border-radius: 6px;
+    }
+
+    .auth-mobile-logo-text strong { font-size: 15px; font-weight: 700; color: var(--kf-primary); display: block; }
+    .auth-mobile-logo-text span   { font-size: 11px; color: #888; }
   </style>
 </head>
 <body>
@@ -236,13 +279,32 @@
 <div class="auth-wrapper">
 
   <!-- Painel de branding -->
+  <?php
+  // Carrega config da farmácia (usa cache de sessão igual ao sidebar)
+  if (empty($_SESSION['_kf_config']) || (time() - ($_SESSION['_kf_config_ts'] ?? 0)) > 120) {
+      $_SESSION['_kf_config']    = (new \App\Models\Configuracao())->getAllWithDefaults();
+      $_SESSION['_kf_config_ts'] = time();
+  }
+  $kfC      = $_SESSION['_kf_config'];
+  $kfNome   = $kfC['nome_farmacia'] ?: 'KewanFarma';
+  $kfLogo   = $kfC['logo_farmacia'] ?? '';
+  $kfAppUrl = $_ENV['APP_URL'] ?? '';
+  ?>
   <div class="auth-brand">
     <div class="brand-logo">
+      <?php if (!empty($kfLogo)): ?>
+      <div class="brand-logo-icon brand-logo-icon--img">
+        <img src="<?= $kfAppUrl ?>/uploads/<?= htmlspecialchars($kfLogo) ?>"
+             alt="<?= htmlspecialchars($kfNome) ?>"
+             onerror="this.parentElement.innerHTML='<i class=\'bi bi-capsule-pill\'></i>'; this.parentElement.className='brand-logo-icon'">
+      </div>
+      <?php else: ?>
       <div class="brand-logo-icon">
         <i class="bi bi-capsule-pill"></i>
       </div>
+      <?php endif; ?>
       <div class="brand-logo-text">
-        <h1>KewanFarma</h1>
+        <h1><?= htmlspecialchars($kfNome) ?></h1>
         <span>Sistema de Gestão</span>
       </div>
     </div>
@@ -262,9 +324,27 @@
 
   <!-- Painel do formulário -->
   <div class="auth-form-panel">
+
+    <!-- Logo visível apenas em mobile (painel esquerdo fica escondido) -->
+    <div class="auth-mobile-logo">
+      <?php if (!empty($kfLogo)): ?>
+      <div class="auth-mobile-logo-icon auth-mobile-logo-icon--img">
+        <img src="<?= $kfAppUrl ?>/uploads/<?= htmlspecialchars($kfLogo) ?>"
+             alt="<?= htmlspecialchars($kfNome) ?>"
+             onerror="this.parentElement.innerHTML='<i class=\'bi bi-capsule-pill\'></i>'; this.parentElement.className='auth-mobile-logo-icon'">
+      </div>
+      <?php else: ?>
+      <div class="auth-mobile-logo-icon"><i class="bi bi-capsule-pill"></i></div>
+      <?php endif; ?>
+      <div class="auth-mobile-logo-text">
+        <strong><?= htmlspecialchars($kfNome) ?></strong>
+        <span>Sistema de Gestão</span>
+      </div>
+    </div>
+
     <?= $content ?>
     <div class="auth-footer">
-      KewanFarma &copy; <?= date('Y') ?> &mdash; Todos os direitos reservados
+      <?= htmlspecialchars($kfNome) ?> &copy; <?= date('Y') ?> &mdash; Todos os direitos reservados
     </div>
   </div>
 

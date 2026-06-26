@@ -11,11 +11,8 @@ $statusLabels = [
 ?>
 
 <!-- Flash -->
-<?php if ($flash_sucesso ?? null): ?>
-<div class="alert alert-success alert-dismissible fade show py-2 mb-3">
-  <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash_sucesso) ?>
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<?php if (!empty($flash_sucesso)): ?>
+<span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
 <?php endif; ?>
 
 <!-- Cabeçalho -->

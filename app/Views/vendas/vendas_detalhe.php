@@ -43,14 +43,10 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
 </div>
 
 <?php if (!empty($flash_sucesso)): ?>
-<div class="alert alert-success alert-dismissible fade show mb-3">
-  <?= htmlspecialchars($flash_sucesso) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<span id="kf-flash-sucesso" data-msg="<?= htmlspecialchars($flash_sucesso) ?>" hidden></span>
 <?php endif; ?>
 <?php if (!empty($flash_erro)): ?>
-<div class="alert alert-danger alert-dismissible fade show mb-3">
-  <?= htmlspecialchars($flash_erro) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<span id="kf-flash-erro" data-msg="<?= htmlspecialchars($flash_erro) ?>" hidden></span>
 <?php endif; ?>
 
 <div class="row g-4">

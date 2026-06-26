@@ -21,7 +21,10 @@ class CaixaController
     public function index(): void
     {
         $caixaAberta  = $this->model->aberta();
-        $historico    = $this->model->historico(1, 10);
+        $page     = max(1, (int)($_GET['page']     ?? 1));
+        $perPage  = in_array((int)($_GET['per_page'] ?? 10), [10, 20, 50])
+                    ? (int)($_GET['per_page'] ?? 10) : 10;
+        $historico    = $this->model->historico($page, $perPage);
         $stats        = $this->model->estatisticasHoje();
 
         $resumo = null;
@@ -102,9 +105,41 @@ class CaixaController
         if ($diferenca != 0) {
             $msg .= ' | Diferença: MT ' . number_format(abs($diferenca), 2, ',', '.') . ($diferenca > 0 ? ' (sobra)' : ' (falta)');
         }
+        $msg .= ' — Clique em "Relatório" para imprimir o fecho.';
 
         $_SESSION['flash_sucesso'] = $msg;
-        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/caixa/' . $caixaAberta['id']);
+        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/caixa/' . $caixaAberta['id'] . '?relatorio=1');
+        exit;
+    }
+
+    // ================================================================
+    // GET /caixa/{id}/relatorio — Relatório detalhado de fecho
+    // ================================================================
+    public function relatorio(string $id): void
+    {
+        $sessao = $this->model->findCompleto((int) $id);
+        if (!$sessao) {
+            http_response_code(404);
+            require dirname(__DIR__) . '/Views/errors/404.php';
+            return;
+        }
+
+        $movimentos  = $this->model->movimentos((int) $id, 500);
+        $resumo      = $this->model->resumoMovimentos((int) $id);
+        $pagamentos  = $this->model->resumoPagamentos((int) $id);
+        $dadosRel    = $this->model->dadosRelatorio((int) $id);
+        $config      = (new \App\Models\Configuracao())->getAllWithDefaults();
+
+        extract([
+            's'          => $sessao,
+            'movimentos' => $movimentos,
+            'resumo'     => $resumo,
+            'pagamentos' => $pagamentos,
+            'config'     => $config,
+            'appUrl'     => $_ENV['APP_URL'] ?? '',
+        ] + $dadosRel);
+
+        require __DIR__ . '/../../app/Views/caixa/relatorio_fecho_pdf.php';
         exit;
     }
 

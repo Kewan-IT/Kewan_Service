@@ -56,7 +56,18 @@ class ConfiguracaoController
                 'prefixo_venda' => strtoupper(trim($_POST['prefixo_venda'] ?? 'VD')),
                 'prefixo_compra' => strtoupper(trim($_POST['prefixo_compra'] ?? 'CP')),
                 'dias_alerta_validade' => trim($_POST['dias_alerta_validade'] ?? '90'),
+                'smtp_host'           => trim($_POST['smtp_host']        ?? ''),
+                'smtp_porta'          => trim($_POST['smtp_porta']       ?? '587'),
+                'smtp_usuario'        => trim($_POST['smtp_usuario']     ?? ''),
+                'smtp_criptografia'   => trim($_POST['smtp_criptografia'] ?? 'tls'),
+                'smtp_de_nome'        => trim($_POST['smtp_de_nome']     ?? ''),
+                'smtp_de_email'       => trim($_POST['smtp_de_email']    ?? ''),
             ];
+            // Senha SMTP — só actualiza se preenchida (para não apagar com campo vazio)
+            $smtpSenha = trim($_POST['smtp_senha'] ?? '');
+            if ($smtpSenha !== '') {
+                $payload['smtp_senha'] = $smtpSenha;
+            }
 
             $logoPath = $this->processarLogo();
             if ($logoPath !== null) {
@@ -64,6 +75,8 @@ class ConfiguracaoController
             }
 
             $this->model->salvar($payload);
+            // Invalidar o cache de configurações do sidebar/login
+            unset($_SESSION['_kf_config'], $_SESSION['_kf_config_ts']);
             $_SESSION['flash_sucesso'] = 'Configurações guardadas com sucesso.';
         } catch (\Throwable $e) {
             error_log('Erro ao guardar configurações: ' . $e->getMessage());
