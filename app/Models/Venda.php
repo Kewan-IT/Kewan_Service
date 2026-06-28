@@ -291,123 +291,327 @@ class Venda extends BaseModel
     // ----------------------------------------------------------------
     // Listagem com filtros
     // ----------------------------------------------------------------
-    public function listar(array $filtros = [], int $page = 1, int $perPage = 20): array
+    public function listar(array $filtros = []): array
     {
-        $perPage = max(1, $perPage);
-        $where  = ['1=1'];
-        $params = [];
-
-        if (!empty($filtros['data_inicio'])) {
-            $where[] = 'DATE(v.criado_em) >= :data_inicio';
-            $params['data_inicio'] = $filtros['data_inicio'];
-        }
-        if (!empty($filtros['data_fim'])) {
-            $where[] = 'DATE(v.criado_em) <= :data_fim';
-            $params['data_fim'] = $filtros['data_fim'];
-        }
-        if (!empty($filtros['status'])) {
-            $where[] = 'v.status = :status';
-            $params['status'] = $filtros['status'];
-        }
-        if (!empty($filtros['forma_pagamento'])) {
-            $where[] = 'v.forma_pagamento = :forma_pagamento';
-            $params['forma_pagamento'] = $filtros['forma_pagamento'];
-        }
-        if (!empty($filtros['busca'])) {
-            $where[] = '(v.numero_venda LIKE :busca1 OR c.nome LIKE :busca2)';
-            $params['busca1'] = '%' . $filtros['busca'] . '%';
-            $params['busca2'] = '%' . $filtros['busca'] . '%';
-        }
-
-        // Compatibilidade: limite simples (ex: dashboard)
-        if (!empty($filtros['limite'])) {
-            $whereStr = implode(' AND ', $where);
-            $sql = "
-                SELECT v.*, c.nome AS cliente_nome, u.nome AS usuario_nome,
-                       COUNT(iv.id) AS total_itens
-                FROM vendas v
-                LEFT JOIN clientes c     ON c.id = v.cliente_id
-                LEFT JOIN usuarios u     ON u.id = v.usuario_id
-                LEFT JOIN itens_venda iv ON iv.venda_id = v.id
-                WHERE $whereStr
-                GROUP BY v.id ORDER BY v.criado_em DESC
-                LIMIT " . (int)$filtros['limite'];
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetchAll();
-        }
-
-        $whereStr = implode(' AND ', $where);
-        $offset   = ($page - 1) * $perPage;
-
-        // Total (usando subquery para contagem correcta com GROUP BY)
-        $stmtCount = $this->db->prepare("
-            SELECT COUNT(*) FROM (
-                SELECT v.id FROM vendas v
-                LEFT JOIN clientes c     ON c.id = v.cliente_id
-                LEFT JOIN itens_venda iv ON iv.venda_id = v.id
-                WHERE $whereStr
-                GROUP BY v.id
-            ) sub
-        ");
-        $stmtCount->execute($params);
-        $total = (int) $stmtCount->fetchColumn();
-
-        $stmtData = $this->db->prepare("
-            SELECT v.*, c.nome AS cliente_nome, u.nome AS usuario_nome,
+        $sql    = "
+            SELECT v.*,
+                   c.nome AS cliente_nome,
+                   u.nome AS usuario_nome,
                    COUNT(iv.id) AS total_itens
             FROM vendas v
             LEFT JOIN clientes c     ON c.id = v.cliente_id
             LEFT JOIN usuarios u     ON u.id = v.usuario_id
             LEFT JOIN itens_venda iv ON iv.venda_id = v.id
-            WHERE $whereStr
-            GROUP BY v.id
-            ORDER BY v.criado_em DESC
-            LIMIT $perPage OFFSET $offset
-        ");
-        $stmtData->execute($params);
+            WHERE 1=1
+        ";
+        $params = [];
 
-        return [
-            'data'         => $stmtData->fetchAll(),
-            'total'        => $total,
-            'per_page'     => $perPage,
-            'current_page' => $page,
-            'last_page'    => max(1, (int) ceil($total / $perPage)),
-        ];
+        if (!empty($filtros['data_inicio'])) {
+            $sql .= ' AND DATE(v.criado_em) >= :data_inicio';
+            $params['data_inicio'] = $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $sql .= ' AND DATE(v.criado_em) <= :data_fim';
+            $params['data_fim'] = $filtros['data_fim'];
+        }
+        if (!empty($filtros['status'])) {
+            $sql .= ' AND v.status = :status';
+            $params['status'] = $filtros['status'];
+        }
+        if (!empty($filtros['forma_pagamento'])) {
+            $sql .= ' AND v.forma_pagamento = :forma_pagamento';
+            $params['forma_pagamento'] = $filtros['forma_pagamento'];
+        }
+        if (!empty($filtros['busca'])) {
+            $sql .= ' AND (v.numero_venda LIKE :busca1 OR c.nome LIKE :busca2)';
+            $params['busca1'] = '%' . $filtros['busca'] . '%';
+            $params['busca2'] = '%' . $filtros['busca'] . '%';
+        }
+
+        $sql .= ' GROUP BY v.id ORDER BY v.criado_em DESC';
+
+        if (!empty($filtros['limite'])) {
+            $sql .= ' LIMIT ' . (int)$filtros['limite'];
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     // ----------------------------------------------------------------
-    // Cancelar venda — repõe stock nos lotes
+    // Cancelar venda (devolução TOTAL) — repõe stock de todos os itens
     // ----------------------------------------------------------------
-    public function cancelar(int $id, string $motivo = ''): bool
+    public function cancelar(int $id, string $motivo = '', int $usuarioId = 0): bool
     {
+        $this->garantirTabelasDevolucoes();
         $this->db->beginTransaction();
         try {
-            $itens = $this->db->prepare("SELECT produto_id, lote_id, quantidade FROM itens_venda WHERE venda_id = :id");
-            $itens->execute(['id' => $id]);
-            foreach ($itens->fetchAll() as $item) {
-                // Repor no produto
-                $this->db->prepare("UPDATE produtos SET estoque_actual = estoque_actual + :qty WHERE id = :id")
-                         ->execute(['qty' => $item['quantidade'], 'id' => $item['produto_id']]);
-                // Repor no lote se existir
-                if ($item['lote_id']) {
-                    $this->db->prepare("UPDATE lotes SET quantidade = quantidade + :qty WHERE id = :id")
-                             ->execute(['qty' => $item['quantidade'], 'id' => $item['lote_id']]);
-                }
+            $venda = $this->db->prepare("SELECT * FROM vendas WHERE id = :id AND status = 'concluida' LIMIT 1");
+            $venda->execute(['id' => $id]);
+            $v = $venda->fetch();
+            if (!$v) {
+                $this->db->rollBack();
+                return false;
             }
 
-            $stmt = $this->db->prepare("
-                UPDATE vendas SET status = 'cancelada',
+            $itens = $this->db->prepare("SELECT * FROM itens_venda WHERE venda_id = :id");
+            $itens->execute(['id' => $id]);
+            $rows = $itens->fetchAll();
+
+            foreach ($rows as $item) {
+                $qtyRestante = (int)$item['quantidade'] - (int)$item['qty_devolvida'];
+                if ($qtyRestante <= 0) continue;
+
+                $this->db->prepare("UPDATE produtos SET estoque_actual = estoque_actual + :qty WHERE id = :pid")
+                         ->execute(['qty' => $qtyRestante, 'pid' => $item['produto_id']]);
+                if ($item['lote_id']) {
+                    $this->db->prepare("UPDATE lotes SET quantidade = quantidade + :qty WHERE id = :lid")
+                             ->execute(['qty' => $qtyRestante, 'lid' => $item['lote_id']]);
+                }
+                // Marcar item como totalmente devolvido
+                $this->db->prepare("UPDATE itens_venda SET qty_devolvida = quantidade WHERE id = :id")
+                         ->execute(['id' => $item['id']]);
+            }
+
+            // Registar devolução total
+            $this->db->prepare("
+                INSERT INTO devolucoes (venda_id, usuario_id, tipo, motivo, valor_total)
+                VALUES (:vid, :uid, 'total', :motivo, :total)
+            ")->execute([
+                'vid'    => $id,
+                'uid'    => $usuarioId ?: ((int)($_SESSION['usuario_id'] ?? 0)),
+                'motivo' => $motivo,
+                'total'  => $v['total'],
+            ]);
+
+            // Ajustar caixa — lançar saída pelo valor total
+            $caixaId = $this->db->query("SELECT id FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1")->fetchColumn();
+            if ($caixaId) {
+                $this->db->prepare("
+                    INSERT INTO movimentos_caixa (caixa_id, venda_id, tipo, valor, descricao, usuario_id)
+                    VALUES (:cid, :vid, 'devolucao', :val, :desc, :uid)
+                ")->execute([
+                    'cid'  => $caixaId,
+                    'vid'  => $id,
+                    'val'  => $v['total'],
+                    'desc' => 'Devolução total — ' . $v['numero_venda'] . ': ' . $motivo,
+                    'uid'  => $usuarioId ?: ((int)($_SESSION['usuario_id'] ?? 0)),
+                ]);
+                $this->db->prepare("
+                    UPDATE caixa
+                    SET total_vendas   = GREATEST(0, total_vendas - :t1),
+                        total_entradas = GREATEST(0, total_entradas - :t2)
+                    WHERE id = :id
+                ")->execute(['t1' => $v['total'], 't2' => $v['total'], 'id' => $caixaId]);
+            }
+
+            $this->db->prepare("
+                UPDATE vendas
+                SET status = 'cancelada',
                     observacoes = CONCAT(COALESCE(observacoes,''), ' [CANCELADA: ', :motivo, ']')
-                WHERE id = :id AND status = 'concluida'
-            ");
-            $ok = $stmt->execute(['id' => $id, 'motivo' => $motivo]);
+                WHERE id = :id
+            ")->execute(['id' => $id, 'motivo' => $motivo]);
+
             $this->db->commit();
-            return $ok;
+            return true;
+
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
         }
+    }
+
+    // ----------------------------------------------------------------
+    // Devolução PARCIAL — devolve apenas os itens/quantidades indicados
+    // $itens = [ ['item_venda_id' => X, 'quantidade' => Y], ... ]
+    // ----------------------------------------------------------------
+    public function devolverParcial(int $vendaId, array $itens, string $motivo, int $usuarioId): int
+    {
+        if (empty($itens)) throw new \InvalidArgumentException('Nenhum item seleccionado.');
+
+        $this->garantirTabelasDevolucoes();
+        $this->db->beginTransaction();
+        try {
+            $venda = $this->db->prepare("SELECT * FROM vendas WHERE id = :id AND status = 'concluida' LIMIT 1");
+            $venda->execute(['id' => $vendaId]);
+            $v = $venda->fetch();
+            if (!$v) throw new \RuntimeException('Venda não encontrada ou já cancelada.');
+
+            $valorDevolucao = 0.0;
+
+            // Criar registo de devolução
+            $this->db->prepare("
+                INSERT INTO devolucoes (venda_id, usuario_id, tipo, motivo, valor_total)
+                VALUES (:vid, :uid, 'parcial', :motivo, 0)
+            ")->execute(['vid' => $vendaId, 'uid' => $usuarioId, 'motivo' => $motivo]);
+            $devId = (int)$this->db->lastInsertId();
+
+            foreach ($itens as $it) {
+                $itemId = (int)($it['item_venda_id'] ?? 0);
+                $qtyDev = (int)($it['quantidade']    ?? 0);
+                if ($itemId <= 0 || $qtyDev <= 0) continue;
+
+                // Obter item original
+                $stmt = $this->db->prepare("SELECT * FROM itens_venda WHERE id = :id AND venda_id = :vid LIMIT 1");
+                $stmt->execute(['id' => $itemId, 'vid' => $vendaId]);
+                $item = $stmt->fetch();
+                if (!$item) continue;
+
+                $qtyDisponivel = (int)$item['quantidade'] - (int)$item['qty_devolvida'];
+                $qtyDev        = min($qtyDev, $qtyDisponivel); // nunca devolver mais do que comprou
+                if ($qtyDev <= 0) continue;
+
+                $subtotalDev = round((float)$item['preco_unitario'] * $qtyDev, 2);
+                $valorDevolucao += $subtotalDev;
+
+                // Inserir item de devolução
+                $this->db->prepare("
+                    INSERT INTO devolucao_itens
+                        (devolucao_id, item_venda_id, produto_id, lote_id, quantidade, preco_unitario, subtotal)
+                    VALUES (:did, :iid, :pid, :lid, :qty, :preco, :sub)
+                ")->execute([
+                    'did'   => $devId,
+                    'iid'   => $itemId,
+                    'pid'   => $item['produto_id'],
+                    'lid'   => $item['lote_id'],
+                    'qty'   => $qtyDev,
+                    'preco' => $item['preco_unitario'],
+                    'sub'   => $subtotalDev,
+                ]);
+
+                // Actualizar qty_devolvida no item original
+                $this->db->prepare("
+                    UPDATE itens_venda SET qty_devolvida = qty_devolvida + :qty WHERE id = :id
+                ")->execute(['qty' => $qtyDev, 'id' => $itemId]);
+
+                // Repor stock do produto
+                $this->db->prepare("UPDATE produtos SET estoque_actual = estoque_actual + :qty WHERE id = :pid")
+                         ->execute(['qty' => $qtyDev, 'pid' => $item['produto_id']]);
+
+                // Repor stock do lote
+                if ($item['lote_id']) {
+                    $this->db->prepare("UPDATE lotes SET quantidade = quantidade + :qty WHERE id = :lid")
+                             ->execute(['qty' => $qtyDev, 'lid' => $item['lote_id']]);
+                }
+            }
+
+            // Actualizar valor total da devolução
+            $this->db->prepare("UPDATE devolucoes SET valor_total = :val WHERE id = :id")
+                     ->execute(['val' => $valorDevolucao, 'id' => $devId]);
+
+            // Verificar se todos os itens foram devolvidos → mudar status para 'devolvida'
+            $pendente = $this->db->prepare("
+                SELECT COUNT(*) FROM itens_venda
+                WHERE venda_id = :vid AND quantidade > qty_devolvida
+            ");
+            $pendente->execute(['vid' => $vendaId]);
+            $temPendente = (int)$pendente->fetchColumn();
+
+            $novoStatus = $temPendente === 0 ? 'cancelada' : 'devolvida';
+            $this->db->prepare("
+                UPDATE vendas
+                SET status = :status,
+                    observacoes = CONCAT(COALESCE(observacoes,''), ' [DEV.PARCIAL: ', :motivo, ']')
+                WHERE id = :id
+            ")->execute(['status' => $novoStatus, 'id' => $vendaId, 'motivo' => $motivo]);
+
+            // Ajustar caixa
+            $caixaId = $this->db->query("SELECT id FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1")->fetchColumn();
+            if ($caixaId && $valorDevolucao > 0) {
+                $this->db->prepare("
+                    INSERT INTO movimentos_caixa (caixa_id, venda_id, tipo, valor, descricao, usuario_id)
+                    VALUES (:cid, :vid, 'devolucao', :val, :desc, :uid)
+                ")->execute([
+                    'cid'  => $caixaId,
+                    'vid'  => $vendaId,
+                    'val'  => $valorDevolucao,
+                    'desc' => 'Devolução parcial — ' . $v['numero_venda'] . ': ' . $motivo,
+                    'uid'  => $usuarioId,
+                ]);
+                $this->db->prepare("
+                    UPDATE caixa
+                    SET total_vendas   = GREATEST(0, total_vendas - :t1),
+                        total_entradas = GREATEST(0, total_entradas - :t2)
+                    WHERE id = :id
+                ")->execute(['t1' => $valorDevolucao, 't2' => $valorDevolucao, 'id' => $caixaId]);
+            }
+
+            $this->db->commit();
+            return $devId;
+
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Garantir que as tabelas de devoluções existem (auto-migração)
+    // ----------------------------------------------------------------
+    private function garantirTabelasDevolucoes(): void
+    {
+        $this->db->exec("
+            CREATE TABLE IF NOT EXISTS devolucoes (
+                id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                venda_id    INT UNSIGNED NOT NULL,
+                usuario_id  INT UNSIGNED NOT NULL,
+                tipo        ENUM('total','parcial') NOT NULL DEFAULT 'total',
+                motivo      TEXT NOT NULL,
+                valor_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                criado_em   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_venda (venda_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $this->db->exec("
+            CREATE TABLE IF NOT EXISTS devolucao_itens (
+                id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                devolucao_id    INT UNSIGNED NOT NULL,
+                item_venda_id   INT UNSIGNED NOT NULL,
+                produto_id      INT UNSIGNED NOT NULL,
+                lote_id         INT UNSIGNED NULL,
+                quantidade      INT UNSIGNED NOT NULL,
+                preco_unitario  DECIMAL(12,2) NOT NULL,
+                subtotal        DECIMAL(12,2) NOT NULL,
+                INDEX idx_dev (devolucao_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        // Adicionar coluna qty_devolvida se ainda nao existir
+        try {
+            $this->db->exec("ALTER TABLE itens_venda ADD COLUMN qty_devolvida INT UNSIGNED NOT NULL DEFAULT 0");
+        } catch (\PDOException $e) {
+            if (strpos($e->getMessage(), '1060') === false) throw $e;
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Historico de devolucoes de uma venda
+    // ----------------------------------------------------------------
+    public function devolucoes(int $vendaId): array
+    {
+        $this->garantirTabelasDevolucoes();
+        $stmt = $this->db->prepare("
+            SELECT d.*, u.nome AS usuario_nome
+            FROM devolucoes d
+            LEFT JOIN usuarios u ON u.id = d.usuario_id
+            WHERE d.venda_id = :vid
+            ORDER BY d.criado_em DESC
+        ");
+        $stmt->execute(['vid' => $vendaId]);
+        $devs = $stmt->fetchAll();
+
+        foreach ($devs as &$dev) {
+            $si = $this->db->prepare("
+                SELECT di.*, p.nome AS produto_nome, p.unidade_medida, l.numero_lote
+                FROM devolucao_itens di
+                JOIN produtos p    ON p.id = di.produto_id
+                LEFT JOIN lotes l  ON l.id = di.lote_id
+                WHERE di.devolucao_id = :did
+            ");
+            $si->execute(['did' => $dev['id']]);
+            $dev['itens'] = $si->fetchAll();
+        }
+        return $devs;
     }
 
     // ----------------------------------------------------------------

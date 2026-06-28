@@ -154,7 +154,25 @@ $statusLabels = [
     </div>
  
     <!-- Paginação -->
-    <?php include __DIR__ . '/../partials/paginacao.php'; ?>
+    <?php if ($paginacao['last_page'] > 1): ?>
+    <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top">
+      <small class="text-muted">
+        <?= $paginacao['total'] ?> compras encontradas
+      </small>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          <?php for ($i = 1; $i <= $paginacao['last_page']; $i++): ?>
+          <li class="page-item <?= $i === $paginacao['current_page'] ? 'active' : '' ?>">
+            <a class="page-link"
+               href="?q=<?= urlencode($q) ?>&status=<?= urlencode($status) ?>&page=<?= $i ?>">
+              <?= $i ?>
+            </a>
+          </li>
+          <?php endfor; ?>
+        </ul>
+      </nav>
+    </div>
+    <?php endif; ?>
     <?php endif; ?>
   </div>
 </div>

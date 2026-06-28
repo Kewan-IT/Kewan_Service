@@ -21,10 +21,7 @@ class CaixaController
     public function index(): void
     {
         $caixaAberta  = $this->model->aberta();
-        $page     = max(1, (int)($_GET['page']     ?? 1));
-        $perPage  = in_array((int)($_GET['per_page'] ?? 10), [10, 20, 50])
-                    ? (int)($_GET['per_page'] ?? 10) : 10;
-        $historico    = $this->model->historico($page, $perPage);
+        $historico    = $this->model->historico(1, 10);
         $stats        = $this->model->estatisticasHoje();
 
         $resumo = null;

@@ -22,10 +22,8 @@ class FornecedorController
         $q      = trim($_GET['q']     ?? '');
         $status = $_GET['status']      ?? '';
         $page   = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = in_array((int)($_GET['per_page'] ?? 20), [10, 20, 50])
-                   ? (int)($_GET['per_page'] ?? 20) : 20;
 
-        $paginacao = $this->model->listar($q, $status, $page, $perPage);
+        $paginacao = $this->model->listar($q, $status, $page, 20);
         $stats     = $this->model->estatisticas();
 
         View::render('fornecedores.index', [

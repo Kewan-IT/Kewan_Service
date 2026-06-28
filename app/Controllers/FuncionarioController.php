@@ -36,10 +36,8 @@ class FuncionarioController
         $status    = $_GET['status']        ?? '';
         $cargo_id  = (int)($_GET['cargo']   ?? 0);
         $page      = max(1, (int)($_GET['page'] ?? 1));
-        $perPage   = in_array((int)($_GET['per_page'] ?? 20), [10, 20, 50])
-                     ? (int)($_GET['per_page'] ?? 20) : 20;
 
-        $paginacao = $this->model->listar($pesquisa, $status, $cargo_id, $page, $perPage);
+        $paginacao = $this->model->listar($pesquisa, $status, $cargo_id, $page, 20);
         $cargos    = $this->cargoModel->listarActivos();
         $stats     = $this->model->estatisticas();
 

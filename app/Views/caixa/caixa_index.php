@@ -266,12 +266,6 @@ $tiposMov = [
         </tbody>
       </table>
     </div>
-    <?php
-    // Reutilizar partial de paginação com $historico como $paginacao
-    $paginacao = $historico;
-    include __DIR__ . '/../partials/paginacao.php';
-    unset($paginacao);
-    ?>
     <?php endif; ?>
   </div>
 </div>

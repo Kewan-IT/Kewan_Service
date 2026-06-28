@@ -221,5 +221,23 @@ $isEdit = in_array($_SESSION['perfil'] ?? '', ['admin', 'farmaceutico']);
 </div>
 
 <!-- Paginação -->
-<?php include __DIR__ . '/../partials/paginacao.php'; ?>
+<?php if ($paginacao['last_page'] > 1): ?>
+<div class="d-flex align-items-center justify-content-between mt-2" style="font-size:.8rem">
+  <div class="text-muted">
+    <?= count($paginacao['data']) ?> de <?= $paginacao['total'] ?> produtos
+  </div>
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      <?php for ($pg = 1; $pg <= $paginacao['last_page']; $pg++): ?>
+      <li class="page-item <?= $pg === $paginacao['current_page'] ? 'active' : '' ?>">
+        <a class="page-link"
+           href="?q=<?= urlencode($pesquisa) ?>&cat=<?= $categoria ?>&fornecedor=<?= $fornecedor ?>&filtro=<?= urlencode($filtro) ?>&page=<?= $pg ?>">
+          <?= $pg ?>
+        </a>
+      </li>
+      <?php endfor; ?>
+    </ul>
+  </nav>
+</div>
+<?php endif; ?>
 <?php endif; ?>

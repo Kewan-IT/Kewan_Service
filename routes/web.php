@@ -61,6 +61,7 @@ $router->get('/vendas',                ['VendaController', 'index']);
 $router->get('/vendas/{id}/detalhe',   ['VendaController', 'show']);
 $router->get('/vendas/{id}/talao',     ['VendaController', 'talao']);
 $router->post('/vendas/{id}/cancelar', ['VendaController', 'cancelar']);
+$router->post('/vendas/{id}/devolver', ['VendaController', 'devolverParcial']);
 
 // ── Compras ──────────────────────────────────────────────────────
 $router->get('/compras',               ['CompraController', 'index']);

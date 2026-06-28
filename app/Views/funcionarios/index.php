@@ -186,7 +186,25 @@ $APP = $_ENV['APP_URL'] ?? '';
     </div>
 
     <!-- Paginação -->
-    <?php include __DIR__ . '/../partials/paginacao.php'; ?>
+    <?php if ($paginacao['last_page'] > 1): ?>
+    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="font-size:.8rem">
+      <div class="text-muted">
+        Mostrando <?= count($paginacao['data']) ?> de <?= $paginacao['total'] ?> funcionários
+      </div>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          <?php for ($p = 1; $p <= $paginacao['last_page']; $p++): ?>
+          <li class="page-item <?= $p === $paginacao['current_page'] ? 'active' : '' ?>">
+            <a class="page-link"
+               href="?q=<?= urlencode($pesquisa) ?>&status=<?= urlencode($status) ?>&cargo=<?= $cargo_id ?>&page=<?= $p ?>">
+              <?= $p ?>
+            </a>
+          </li>
+          <?php endfor; ?>
+        </ul>
+      </nav>
+    </div>
+    <?php endif; ?>
     <?php endif; ?>
   </div>
 </div>

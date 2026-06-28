@@ -38,11 +38,7 @@ class VendaController
             'data_fim'        => $_GET['data_fim']             ?? date('Y-m-d'),
         ];
 
-        $page       = max(1, (int)($_GET['page']     ?? 1));
-        $perPage    = in_array((int)($_GET['per_page'] ?? 20), [10, 20, 50])
-                      ? (int)($_GET['per_page'] ?? 20) : 20;
-
-        $paginacao  = $this->model->listar($filtros, $page, $perPage);
+        $vendas     = $this->model->listar($filtros);
         $resumo     = $this->model->resumoDia();
         $pagamentos = $this->model->resumoPagamentosDia();
 
@@ -54,7 +50,7 @@ class VendaController
             'titulo'        => 'Vendas',
             'activePage'    => 'vendas',
             'breadcrumb'    => ['Vendas' => null],
-            'paginacao'     => $paginacao,
+            'vendas'        => $vendas,
             'resumo'        => $resumo,
             'pagamentos'    => $pagamentos,
             'filtros'       => $filtros,
@@ -234,11 +230,14 @@ class VendaController
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
 
+        $devolucoes = $this->model->devolucoes((int)$id);
+
         View::render('vendas.vendas_detalhe', [
             'titulo'        => 'Venda ' . $venda['numero_venda'],
             'activePage'    => 'vendas',
             'breadcrumb'    => ['Vendas' => ($_ENV['APP_URL'] ?? '') . '/vendas', $venda['numero_venda'] => null],
             'venda'         => $venda,
+            'devolucoes'    => $devolucoes,
             'csrf_token'    => $_SESSION['csrf_token'],
             'flash_sucesso' => $_SESSION['flash_sucesso'] ?? null,
             'flash_erro'    => $_SESSION['flash_erro']    ?? null,
@@ -262,19 +261,61 @@ class VendaController
     }
 
     // ================================================================
-    // POST /vendas/{id}/cancelar
+    // POST /vendas/{id}/cancelar  — devolução TOTAL
     // ================================================================
     public function cancelar(string $id): void
     {
         AuthMiddleware::requirePerfil('admin', 'diretor', 'farmaceutico');
         $this->verificarCsrf();
 
-        $motivo = trim($_POST['motivo'] ?? 'Cancelamento solicitado');
-        $ok     = $this->model->cancelar((int)$id, $motivo);
+        $motivo    = trim($_POST['motivo'] ?? 'Cancelamento solicitado');
+        $usuarioId = (int)$_SESSION['usuario_id'];
 
-        $_SESSION[$ok ? 'flash_sucesso' : 'flash_erro'] = $ok
-            ? 'Venda cancelada. Stock e lotes repostos automaticamente.'
-            : 'Não foi possível cancelar esta venda.';
+        try {
+            $ok = $this->model->cancelar((int)$id, $motivo, $usuarioId);
+            $_SESSION[$ok ? 'flash_sucesso' : 'flash_erro'] = $ok
+                ? 'Devolução total efectuada. Stock e lotes repostos.'
+                : 'Não foi possível cancelar esta venda.';
+        } catch (\Throwable $e) {
+            $_SESSION['flash_erro'] = 'Erro: ' . $e->getMessage();
+        }
+
+        header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/vendas/' . $id . '/detalhe');
+        exit;
+    }
+
+    // ================================================================
+    // POST /vendas/{id}/devolver  — devolução PARCIAL
+    // ================================================================
+    public function devolverParcial(string $id): void
+    {
+        AuthMiddleware::requirePerfil('admin', 'diretor', 'farmaceutico');
+        $this->verificarCsrf();
+
+        $motivo    = trim($_POST['motivo'] ?? '');
+        $usuarioId = (int)$_SESSION['usuario_id'];
+
+        // Recolher itens seleccionados: item_venda_id → quantidade
+        $itens = [];
+        foreach ($_POST['dev_qty'] ?? [] as $itemId => $qty) {
+            $qty = (int)$qty;
+            if ($qty > 0) {
+                $itens[] = ['item_venda_id' => (int)$itemId, 'quantidade' => $qty];
+            }
+        }
+
+        if (empty($itens)) {
+            $_SESSION['flash_erro'] = 'Seleccione pelo menos um produto e quantidade para devolver.';
+            header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/vendas/' . $id . '/detalhe');
+            exit;
+        }
+
+        try {
+            $this->model->devolverParcial((int)$id, $itens, $motivo, $usuarioId);
+            $_SESSION['flash_sucesso'] = 'Devolução parcial registada. Stock actualizado.';
+        } catch (\Throwable $e) {
+            $_SESSION['flash_erro'] = 'Erro na devolução: ' . $e->getMessage();
+        }
 
         header('Location: ' . ($_ENV['APP_URL'] ?? '') . '/vendas/' . $id . '/detalhe');
         exit;

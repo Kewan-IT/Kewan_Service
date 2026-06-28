@@ -63,7 +63,7 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
 </div>
 <div class="card border-0 shadow-sm">
   <div class="card-body p-0">
-    <?php if (empty($paginacao['data'])): ?>
+    <?php if (empty($vendas)): ?>
     <div class="text-center py-5 text-muted"><i class="bi bi-receipt fs-1 d-block mb-2"></i>Nenhuma venda encontrada.</div>
     <?php else: ?>
     <div class="table-responsive">
@@ -80,7 +80,7 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
           </tr>
         </thead>
         <tbody>
-        <?php foreach ($paginacao['data'] as $v):
+        <?php foreach ($vendas as $v):
           [$cor,$lbl] = match($v['status']) {
             'concluida'=>['success','Concluída'],'cancelada'=>['danger','Cancelada'],
             default=>['secondary',ucfirst($v['status'])]
@@ -93,13 +93,12 @@ $formas = ['dinheiro'=>'Dinheiro','mpesa'=>'M-Pesa','emola'=>'e-Mola',
             <td class="d-none d-md-table-cell text-muted"><?= $formas[$v['forma_pagamento']] ?? $v['forma_pagamento'] ?></td>
             <td class="text-end fw-bold" style="color:var(--kf-primary)">MT <?= number_format((float)$v['total'],2,',','.') ?></td>
             <td><span class="badge bg-<?= $cor ?>-subtle text-<?= $cor ?> border border-<?= $cor ?>-subtle rounded-pill px-2"><?= $lbl ?></span></td>
-            <td class="pe-3"><a href="<?= $APP ?>/vendas/<?= $v['id'] ?>" class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-eye"></i></a></td>
+            <td class="pe-3"><a href="<?= $APP ?>/vendas/<?= $v['id'] ?>/detalhe" class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-eye"></i></a></td>
           </tr>
         <?php endforeach; ?>
         </tbody>
       </table>
     </div>
-    <?php include __DIR__ . '/../partials/paginacao.php'; ?>
     <?php endif; ?>
   </div>
 </div>

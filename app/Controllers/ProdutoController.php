@@ -32,10 +32,8 @@ class ProdutoController
         $filtro     = $_GET['filtro']           ?? '';
         $fornecedor = (int)($_GET['fornecedor'] ?? 0);
         $page       = max(1, (int)($_GET['page'] ?? 1));
-        $perPage    = in_array((int)($_GET['per_page'] ?? 20), [10, 20, 50])
-                      ? (int)($_GET['per_page'] ?? 20) : 20;
 
-        $paginacao  = $this->model->listar($pesquisa, $categoria, $filtro, $page, $perPage, $fornecedor);
+        $paginacao  = $this->model->listar($pesquisa, $categoria, $filtro, $page, 24, $fornecedor);
         $categorias = $this->catModel->arvore();
         $stats      = $this->model->estatisticas();
 
